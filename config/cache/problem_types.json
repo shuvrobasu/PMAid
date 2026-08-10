@@ -1,0 +1,58 @@
+{
+  "problem_types": [
+    {
+      "id": "predict_outcome",
+      "label": "Predict an outcome or score",
+      "description": "Forecast churn, demand, risk, or similar continuous or categorical outcomes",
+      "intake_hint": "You need labelled historical outcomes and features that exist before the event"
+    },
+    {
+      "id": "classify_content",
+      "label": "Classify content or documents",
+      "description": "Route, tag, or extract structure from text, images, or documents",
+      "intake_hint": "You need examples of each class or a clear extraction schema"
+    },
+    {
+      "id": "generate_content",
+      "label": "Generate content or language",
+      "description": "Produce text, summaries, code, or creative content with a model",
+      "intake_hint": "You need quality criteria and human review for outputs"
+    },
+    {
+      "id": "optimise_decision",
+      "label": "Optimise a decision or allocation",
+      "description": "Recommend actions under constraints using search or learning",
+      "intake_hint": "You need an objective function and constraint definition"
+    },
+    {
+      "id": "detect_anomaly",
+      "label": "Detect anomalies or fraud",
+      "description": "Flag unusual patterns in events, transactions, or telemetry",
+      "intake_hint": "You need a baseline of normal behaviour and alert handling process"
+    },
+    {
+      "id": "retrieve_lookup",
+      "label": "Lookup or retrieval",
+      "description": "Find known records or answers from a store \u2014 often not ML",
+      "intake_hint": "Prefer database search or rules unless semantic search is required"
+    },
+    {
+      "id": "automate_process",
+      "label": "Automate a manual process",
+      "description": "Replace repetitive human steps with software or AI",
+      "intake_hint": "If steps are fixed and low-variance, a rules engine may beat AI"
+    },
+    {
+      "id": "recommend_items",
+      "label": "Recommend items or actions",
+      "description": "Personalise rankings of products, content, or next-best-actions",
+      "intake_hint": "You need interaction history and a definition of relevance"
+    },
+    {
+      "id": "unknown",
+      "label": "I do not know yet",
+      "description": "Problem type is still being framed",
+      "intake_hint": "Complete discovery with stakeholders before locking an AI approach"
+    }
+  ]
+}

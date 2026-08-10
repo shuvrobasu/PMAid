@@ -1,0 +1,108 @@
+{
+  "ai_patterns": [
+    {
+      "id": "supervised_classification",
+      "label": "Prediction model trained on past examples",
+      "techniques": [
+        "Logistic regression / gradient boosting",
+        "Neural classifiers",
+        "Ensemble models"
+      ],
+      "fits_problem_types": [
+        "predict_outcome",
+        "classify_content",
+        "detect_anomaly",
+        "recommend_items"
+      ]
+    },
+    {
+      "id": "supervised_regression",
+      "label": "Number prediction model trained on past examples",
+      "techniques": [
+        "Gradient boosting",
+        "Linear models",
+        "Neural regressors"
+      ],
+      "fits_problem_types": [
+        "predict_outcome",
+        "optimise_decision"
+      ]
+    },
+    {
+      "id": "generative_llm",
+      "label": "Content-generating AI",
+      "techniques": [
+        "Fine-tuned LLM",
+        "RAG over enterprise corpus",
+        "Prompted foundation model"
+      ],
+      "fits_problem_types": [
+        "generate_content",
+        "classify_content"
+      ]
+    },
+    {
+      "id": "document_extraction",
+      "label": "Document sorting and information extraction",
+      "techniques": [
+        "OCR + layout models",
+        "Named entity recognition",
+        "Structured extraction models"
+      ],
+      "fits_problem_types": [
+        "classify_content"
+      ]
+    },
+    {
+      "id": "anomaly_detection",
+      "label": "Unusual activity detection",
+      "techniques": [
+        "Unsupervised density models",
+        "Supervised fraud models",
+        "Time-series residual models"
+      ],
+      "fits_problem_types": [
+        "detect_anomaly"
+      ]
+    },
+    {
+      "id": "optimisation",
+      "label": "Best-option or allocation solver",
+      "techniques": [
+        "Constraint solvers",
+        "Reinforcement learning",
+        "Heuristic search"
+      ],
+      "fits_problem_types": [
+        "optimise_decision"
+      ]
+    },
+    {
+      "id": "rules_engine",
+      "label": "Fixed business rules and workflow automation",
+      "techniques": [
+        "Business rules",
+        "Workflow automation",
+        "Decision tables"
+      ],
+      "fits_problem_types": [
+        "automate_process",
+        "retrieve_lookup"
+      ]
+    },
+    {
+      "id": "not_ai",
+      "label": "Standard software, not AI",
+      "techniques": [
+        "Database query",
+        "Rules engine",
+        "Traditional software"
+      ],
+      "fits_problem_types": [
+        "retrieve_lookup",
+        "automate_process",
+        "unknown"
+      ]
+    }
+  ]
+}
