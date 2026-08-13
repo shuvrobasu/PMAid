@@ -1,0 +1,118 @@
+PMAID Community Licence 1.0
+Copyright © Shuvro Basu, 2026. All Rights Reserved.
+
+https://github.com/shuvrobasu/pmaid
+
+
+TERMS AND CONDITIONS
+
+1. DEFINITIONS
+
+   "Software" means PMAID — PM AI Aid™, including all source code, configuration
+   files, YAML content, templates, documentation, and associated materials
+   distributed under this licence.
+
+   "Licensor" means Shuvro Basu, the copyright holder of the Software.
+
+   "You" means the individual or organisation exercising rights under this licence.
+
+   "Use" means to download, install, run, and interact with the Software for its
+   intended purpose.
+
+   "Commercial purpose" means any use intended for or directed towards commercial
+   advantage or monetary compensation, including but not limited to: use within a
+   paid product or service, use by a commercial entity as part of a revenue-
+   generating activity, or redistribution in exchange for payment.
+
+
+2. PERMITTED USE
+
+   Subject to the terms of this licence, the Licensor grants You a non-exclusive,
+   non-transferable, royalty-free licence to:
+
+   a. Download and run the Software on your own hardware or within your
+      organisation's internal network.
+
+   b. Use the Software for personal, educational, research, and internal
+      organisational purposes.
+
+   c. Share the original, unmodified Software with others, provided that this
+      licence and all copyright notices are included in full.
+
+
+3. RESTRICTIONS
+
+   The following are expressly prohibited without prior written permission from
+   the Licensor:
+
+   a. MODIFICATION. You may not modify, adapt, translate, reverse-engineer,
+      decompile, or create derivative works based on the Software or any part
+      of it, including but not limited to the YAML configuration files,
+      rule sets, and guidance content.
+
+   b. REDISTRIBUTION UNDER ANOTHER NAME. You may not redistribute the Software
+      or any part of it under a different name, brand, or as part of another
+      product or tool, whether modified or unmodified.
+
+   c. COMMERCIAL USE. You may not use the Software or any part of it for any
+      commercial purpose without a separate written commercial licence from
+      the Licensor.
+
+   d. CLAIMING AUTHORSHIP. You may not represent the Software or any substantial
+      portion of it as your own original work.
+
+
+4. ATTRIBUTION
+
+   Any permitted redistribution of the original Software must:
+
+   a. Include this licence in full.
+   b. Retain all copyright notices unchanged.
+   c. Clearly identify the Software as PMAID — PM AI Aid™ by Shuvro Basu.
+
+
+5. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS
+   FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. THE LICENSOR MAKES NO
+   WARRANTY THAT THE SOFTWARE IS ACCURATE, COMPLETE, OR SUITABLE FOR ANY
+   PARTICULAR USE, INCLUDING COMPLIANCE WITH ANY REGULATION.
+
+   OUTPUT PRODUCED BY THE SOFTWARE, INCLUDING EU AI ACT CLASSIFICATIONS AND
+   DELIVERY FRAMEWORK RECOMMENDATIONS, IS PROVIDED AS PLANNING GUIDANCE ONLY
+   AND DOES NOT CONSTITUTE LEGAL, REGULATORY, OR PROFESSIONAL ADVICE.
+
+
+6. LIMITATION OF LIABILITY
+
+   IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+   INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING FROM THE USE OF OR
+   INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+   SUCH DAMAGES.
+
+
+7. TERMINATION
+
+   This licence terminates automatically if You breach any of its terms. Upon
+   termination You must cease all use and delete all copies of the Software
+   in your possession.
+
+
+8. GOVERNING LAW
+
+   This licence shall be governed by and construed in accordance with the laws
+   of the Netherlands, without regard to conflict of law provisions.
+
+
+9. CONTACT
+
+   For commercial licensing, permissions beyond the scope of this licence,
+   or any other enquiries:
+
+   Shuvro Basu
+   https://www.linkedin.com/in/shuvrobasu
+   https://www.shuvrobasu.info
+
+
+Required Notice: PMAID — PM AI Aid™ © Shuvro Basu, 2026. All Rights Reserved.
