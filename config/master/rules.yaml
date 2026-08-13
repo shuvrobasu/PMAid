@@ -1,0 +1,515 @@
+no_match:
+  questions:
+    - What specific problem or decision needs to change?
+    - What relevant data exists today, and who owns it?
+    - Who or what will be affected by the decision or output?
+    - Where must a human review, approve, or override the result?
+    - Which laws, regulations, contractual terms, or policies may apply?
+    - What measurable outcome would demonstrate success?
+    - What deadline or timeline pressure constrains the work?
+    - Which existing systems, integrations, or technical constraints must the solution work with?
+
+rules:
+  - rule_id: rule_prohibited_stop
+    priority: 100
+    evidence: 'Derived from EU AI Act screening logic — a prohibited people-affecting use case must stop before planning.'
+    conditions:
+      eu_tier:
+        in:
+          - prohibited
+      affects_people:
+        in:
+          - "yes"
+    output:
+      ai_type: NOT_AI
+      confidence: 100
+      sub_recommendations:
+        - Do not build this system. Ask legal or compliance specialists whether the business need can be met in another lawful way.
+      warnings:
+        - Stop here. PMAID will not create a plan for a prohibited use case.
+      suggested_phases:
+        - problem_framing
+      role_recommendations:
+        - r_tpm
+        - r_compliance
+        - r_sponsor
+      mandatory_work_packages: []
+      reasons:
+        - The EU AI Act screen marked this use case as prohibited.
+      questions:
+        - Who confirmed the use case is not misclassified?
+        - Is there a non-prohibited reformulation of the business need?
+      complexity_shape: High
+      suggested_non_ai: Do not proceed with this use case. Ask legal or compliance specialists for advice.
+    user_editable: true
+  - rule_id: rule_lookup_not_ai
+    priority: 90
+    evidence: 'Derived from solution-fit reasoning — retrieving known records is normally served more reliably by database or search technology than machine learning.'
+    conditions:
+      problem_type:
+        in:
+          - retrieve_lookup
+      eu_tier:
+        not_in:
+          - prohibited
+    output:
+      ai_type: NOT_AI
+      confidence: 88
+      sub_recommendations:
+        - Use a database search or another standard way to find stored information.
+      warnings:
+        - A database search or simple rules will usually solve this more reliably than machine learning.
+      suggested_phases:
+        - problem_framing
+      role_recommendations:
+        - r_tpm
+        - r_architect
+      mandatory_work_packages: []
+      reasons:
+        - You need to find information that already exists.
+      questions:
+        - Is semantic search actually required, or is exact match enough?
+      complexity_shape: Low
+      suggested_non_ai: Use a database search or search index.
+    user_editable: true
+  - rule_id: rule_automate_low_not_ai
+    priority: 85
+    evidence: 'Derived from automation practice — fixed low-variance steps with few exceptions are better expressed as workflow or business rules.'
+    conditions:
+      problem_type:
+        in:
+          - automate_process
+      rule_complexity:
+        in:
+          - low
+    output:
+      ai_type: NOT_AI
+      confidence: 86
+      sub_recommendations:
+        - Automate the fixed steps with standard workflow software or business rules.
+        - Write down the decision rules and exceptions before considering AI.
+      warnings:
+        - Start with standard workflow automation or business rules before considering AI.
+      suggested_phases:
+        - problem_framing
+      role_recommendations:
+        - r_tpm
+        - r_architect
+        - r_domain_sme
+      mandatory_work_packages: []
+      reasons:
+        - You want software to carry out an existing manual process.
+        - The process follows clear steps with few exceptions.
+      questions:
+        - Can every decision be expressed as if-then business rules today?
+        - What exception rate would still be acceptable without ML?
+      complexity_shape: Low
+      suggested_non_ai: Use standard workflow automation or business rules for the fixed steps.
+    user_editable: true
+  - rule_id: rule_no_data_not_ai
+    priority: 80
+    evidence: 'Derived from model-development prerequisites — custom prediction needs suitable data or an existing trained model.'
+    conditions:
+      data_state:
+        in:
+          - none
+      problem_type:
+        not_in:
+          - generate_content
+      pretrained_available:
+        in:
+          - "no"
+    output:
+      ai_type: NOT_AI
+      confidence: 82
+      sub_recommendations:
+        - Collect suitable data or use an existing trained model before starting a custom AI project.
+      warnings:
+        - A prediction model cannot be built until suitable data or an existing model is available.
+      suggested_phases:
+        - problem_framing
+        - data_discovery
+      role_recommendations:
+        - r_tpm
+        - r_data_engineer
+        - r_sponsor
+      mandatory_work_packages: []
+      reasons:
+        - You do not yet have usable data.
+        - You are not using an existing trained model.
+      questions:
+        - Who owns creating the first labelled dataset?
+        - Is a vendor model with your prompts acceptable?
+      complexity_shape: Medium
+      suggested_non_ai: Use standard software until suitable data is available.
+    user_editable: true
+  - rule_id: rule_supervised_prediction
+    priority: 70
+    evidence: 'Derived from standard supervised learning prerequisites — labelled historical data plus a measurable outcome.'
+    conditions:
+      problem_type:
+        in:
+          - predict_outcome
+      data_state:
+        in:
+          - clean_labelled
+          - partial
+          - messy
+    output:
+      ai_type: supervised_classification
+      confidence: 90
+      sub_recommendations:
+        - Start with a simple model using table-based data before trying more complex models.
+        - Clearly define the result to predict and which information is available before that result happens.
+      warnings:
+        - Check that past examples cover the real cases you expect, are available when the prediction is made, and do not accidentally include the answer.
+      suggested_phases:
+        - problem_framing
+        - data_discovery
+        - solution_architecture
+        - data_engineering
+        - model_development
+        - validation_testing
+        - deployment
+        - hypercare
+      role_recommendations:
+        - r_tpm
+        - r_data_scientist
+        - r_data_engineer
+        - r_ml_engineer
+        - r_domain_sme
+        - r_product_owner
+      mandatory_work_packages: []
+      reasons:
+        - You need the system to predict a result or rank cases.
+        - You have past examples showing what happened, so a model can learn from them.
+      questions:
+        - What is the baseline metric we are trying to beat?
+        - Who owns the decision on what accurate enough means?
+        - What action will the business take on a high churn score?
+        - How many labelled examples does the ML engineer estimate are needed?
+      complexity_shape: High
+      suggested_non_ai: ""
+    user_editable: true
+  - rule_id: rule_document_extraction
+    priority: 68
+    evidence: 'Derived from document automation practice — examples or a suitable pre-trained model can support classification and structured extraction.'
+    conditions:
+      problem_type:
+        in:
+          - classify_content
+      data_state:
+        in:
+          - clean_labelled
+          - partial
+          - messy
+          - pretrained
+    output:
+      ai_type: document_extraction
+      confidence: 84
+      sub_recommendations:
+        - Add text reading, layout handling, and information extraction only where each is needed.
+        - Send uncertain results to a person for review.
+      warnings:
+        - Poor scans, inconsistent layouts, or missing text may matter more than the model you choose.
+      suggested_phases:
+        - problem_framing
+        - data_discovery
+        - solution_architecture
+        - data_engineering
+        - model_development
+        - validation_testing
+        - deployment
+        - hypercare
+      role_recommendations:
+        - r_tpm
+        - r_ml_engineer
+        - r_data_engineer
+        - r_domain_sme
+        - r_qa
+      mandatory_work_packages: []
+      reasons:
+        - You need the system to sort documents or pull information from them.
+        - Models designed for documents can perform this type of work.
+      questions:
+        - What fields must be extracted with what accuracy?
+        - Who reviews low-confidence documents?
+        - Are source formats stable enough for layout models?
+      complexity_shape: Medium
+      suggested_non_ai: ""
+    user_editable: true
+  - rule_id: rule_generative
+    priority: 65
+    evidence: 'Derived from generative AI use cases — creating or rewriting content requires a generative model plus quality controls and human review.'
+    conditions:
+      problem_type:
+        in:
+          - generate_content
+      eu_tier:
+        not_in:
+          - prohibited
+    output:
+      ai_type: generative_llm
+      confidence: 78
+      sub_recommendations:
+        - When facts matter, make the system answer from approved sources.
+        - Require a person to review outputs that could have a serious effect.
+      warnings:
+        - Generated content can vary and may be wrong. Define acceptable output and require human review.
+      suggested_phases:
+        - problem_framing
+        - data_discovery
+        - solution_architecture
+        - data_engineering
+        - model_development
+        - validation_testing
+        - deployment
+        - hypercare
+      role_recommendations:
+        - r_tpm
+        - r_ml_engineer
+        - r_domain_sme
+        - r_ethics_lead
+        - r_product_owner
+      mandatory_work_packages: []
+      reasons:
+        - You need the system to create or rewrite content.
+      questions:
+        - What is an acceptable error for generated text?
+        - Must outputs be grounded in approved sources?
+      complexity_shape: High
+      suggested_non_ai: ""
+    user_editable: true
+  - rule_id: rule_anomaly
+    priority: 64
+    evidence: 'Derived from anomaly-detection practice — unusual activity can be identified only against an understood baseline and a managed review process.'
+    conditions:
+      problem_type:
+        in:
+          - detect_anomaly
+      eu_tier:
+        not_in:
+          - prohibited
+    output:
+      ai_type: anomaly_detection
+      confidence: 80
+      sub_recommendations:
+        - Agree what normal activity looks like before building alerts.
+        - Limit repeated or low-value alerts so reviewers are not overwhelmed.
+      warnings:
+        - People must review alerts and record which ones were useful, or the system will produce growing amounts of noise.
+      suggested_phases:
+        - problem_framing
+        - data_discovery
+        - solution_architecture
+        - data_engineering
+        - model_development
+        - validation_testing
+        - deployment
+        - hypercare
+      role_recommendations:
+        - r_tpm
+        - r_data_scientist
+        - r_ml_engineer
+        - r_sre
+        - r_domain_sme
+      mandatory_work_packages: []
+      reasons:
+        - You need the system to flag unusual or potentially fraudulent activity.
+      questions:
+        - Who triages alerts and within what SLA?
+        - What false positive rate is acceptable?
+      complexity_shape: High
+      suggested_non_ai: ""
+    user_editable: true
+  - rule_id: rule_optimise
+    priority: 63
+    evidence: 'Derived from optimisation practice — allocation decisions require an explicit objective and defined constraints.'
+    conditions:
+      problem_type:
+        in:
+          - optimise_decision
+      eu_tier:
+        not_in:
+          - prohibited
+    output:
+      ai_type: optimisation
+      confidence: 76
+      sub_recommendations:
+        - Write down the goal and all fixed limits before choosing the technical approach.
+      warnings:
+        - Confirm the goal and limits with the business owner, or the system may optimise the wrong thing.
+      suggested_phases:
+        - problem_framing
+        - data_discovery
+        - solution_architecture
+        - data_engineering
+        - model_development
+        - validation_testing
+        - deployment
+        - hypercare
+      role_recommendations:
+        - r_tpm
+        - r_data_scientist
+        - r_architect
+        - r_domain_sme
+      mandatory_work_packages: []
+      reasons:
+        - You need the system to choose or allocate something while following limits and business rules.
+      questions:
+        - What is the single objective being optimised?
+        - Which constraints are hard versus soft?
+      complexity_shape: High
+      suggested_non_ai: ""
+    user_editable: true
+  - rule_id: rule_recommend
+    priority: 62
+    evidence: 'Derived from recommendation-system practice — ranking items or actions requires a relevance outcome and interaction evidence.'
+    conditions:
+      problem_type:
+        in:
+          - recommend_items
+      eu_tier:
+        not_in:
+          - prohibited
+    output:
+      ai_type: supervised_classification
+      confidence: 81
+      sub_recommendations:
+        - Agree how you will measure whether suggestions are useful before and after launch.
+        - Decide what to suggest when a user or item has no history.
+      warnings:
+        - Recommendations may keep promoting what is already popular and hide useful alternatives.
+      suggested_phases:
+        - problem_framing
+        - data_discovery
+        - solution_architecture
+        - data_engineering
+        - model_development
+        - validation_testing
+        - deployment
+        - hypercare
+      role_recommendations:
+        - r_tpm
+        - r_data_scientist
+        - r_ml_engineer
+        - r_product_owner
+      mandatory_work_packages: []
+      reasons:
+        - You need the system to suggest items or actions.
+      questions:
+        - What offline metric predicts online success?
+        - How do new users or items get ranked?
+      complexity_shape: High
+      suggested_non_ai: ""
+    user_editable: true
+  - rule_id: rule_automate_high_ai
+    priority: 60
+    evidence: 'Derived from hybrid automation practice — judgement-heavy exceptions may justify prediction while deterministic steps remain rules-based.'
+    conditions:
+      problem_type:
+        in:
+          - automate_process
+      rule_complexity:
+        in:
+          - high
+          - medium
+    output:
+      ai_type: supervised_classification
+      confidence: 72
+      sub_recommendations:
+        - Use fixed rules for clear cases and consider a model only for cases that genuinely require judgement.
+      warnings:
+        - Compare AI with a simple rules-based approach and use AI only if it performs measurably better.
+      suggested_phases:
+        - problem_framing
+        - data_discovery
+        - solution_architecture
+        - data_engineering
+        - model_development
+        - validation_testing
+        - deployment
+        - hypercare
+      role_recommendations:
+        - r_tpm
+        - r_data_scientist
+        - r_domain_sme
+        - r_ml_engineer
+      mandatory_work_packages: []
+      reasons:
+        - The process includes judgement or exceptions that simple fixed rules may not handle well.
+      questions:
+        - Which steps stay rules and which need prediction?
+      complexity_shape: Medium
+      suggested_non_ai: ""
+    user_editable: true
+  - rule_id: rule_unknown_default
+    priority: 10
+    evidence: 'Derived from discovery practice — an unclear decision or outcome requires clarification before a technical approach can be selected.'
+    conditions:
+      problem_type:
+        in:
+          - unknown
+      eu_tier:
+        not_in:
+          - prohibited
+    output:
+      ai_type: NOT_AI
+      confidence: 39
+      sub_recommendations:
+        - Describe the decision, users, available data, and desired result before selecting an approach.
+      warnings:
+        - PMAID cannot make a reliable recommendation until the problem is described more clearly.
+      suggested_phases:
+        - problem_framing
+        - data_discovery
+      role_recommendations:
+        - r_tpm
+        - r_sponsor
+        - r_domain_sme
+      mandatory_work_packages: []
+      reasons:
+        - The intended decision or outcome is not yet clear.
+      questions:
+        - What decision or outcome would change if this project succeeds?
+      complexity_shape: Medium
+      suggested_non_ai: Pause the technology choice until the problem is clear.
+    user_editable: true
+  - rule_id: rule_default_supervised
+    priority: 1
+    evidence: 'Derived from conservative triage practice — unmatched answers should trigger clarification rather than a confident technical recommendation.'
+    conditions:
+      problem_type:
+        not_in: []
+      eu_tier:
+        not_in:
+          - prohibited
+    output:
+      ai_type: supervised_classification
+      confidence: 39
+      sub_recommendations:
+        - Review the problem and available data before choosing an approach.
+      warnings:
+        - Review the discovery answers and add more detail before relying on this recommendation.
+      suggested_phases:
+        - problem_framing
+        - data_discovery
+        - solution_architecture
+        - data_engineering
+        - model_development
+        - validation_testing
+        - deployment
+        - hypercare
+      role_recommendations:
+        - r_tpm
+        - r_data_scientist
+        - r_ml_engineer
+      mandatory_work_packages: []
+      reasons:
+        - Your answers did not clearly match a specific project pattern.
+      questions:
+        - Which problem type best describes the work?
+        - What data exists today?
+      complexity_shape: Medium
+      suggested_non_ai: ""
+    user_editable: true

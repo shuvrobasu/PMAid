@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PMAID — Visualizer</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css?v=20260809-2">
+  <link rel="stylesheet" href="/static/css/canvas.css">
+  <link rel="stylesheet" href="/static/css/themes/light.css">
+  <link rel="stylesheet" href="/static/css/themes/dark.css">
+</head>
+<body class="theme-light">
+  <header class="app-header">
+    <a class="brand" href="/pages/index.html"><span class="brand-mark">PMAID</span><span class="brand-name">PM AI Aid™</span></a>
+    <nav class="app-nav" aria-label="Primary navigation">
+      <a href="/pages/planner.html">Planner</a>
+      <a href="/pages/export.html">Export</a>
+      <a href="/pages/help.html">Help</a>
+    </nav>
+  </header>
+
+  <main class="container-wide">
+    <h1 id="viz-title">Visualizer</h1>
+    <div class="tabs" id="tabs"></div>
+    <div class="canvas-main" id="viz-panel"></div>
+  </main>
+
+  <script src="/static/js/core/storage.js"></script>
+  <script src="/static/js/core/config-manager.js"></script>
+  <script src="/static/js/core/state-manager.js"></script>
+  <script src="/static/js/modules/eu-classifier.js"></script>
+  <script src="/static/js/modules/rule-engine.js"></script>
+  <script src="/static/js/modules/methodology-mapper.js"></script>
+  <script src="/static/js/modules/raci-builder.js"></script>
+  <script src="/static/js/modules/process-builder.js"></script>
+  <script src="/static/js/modules/risk-analyzer.js"></script>
+  <script src="/static/js/viz/flow-diagram.js"></script>
+  <script src="/static/js/viz/timeline.js"></script>
+  <script src="/static/js/viz/heatmap.js"></script>
+  <script src="/static/js/viz/raci-grid.js"></script>
+  <script>
+    var project = null;
+    var config = null;
+    var activeTab = "flow";
+
+    function renderTabs() {
+      var labels = config.ui.labels;
+      var tabs = [
+        { id: "flow", label: labels.view_flow },
+        { id: "timeline", label: labels.view_timeline },
+        { id: "heatmap", label: labels.view_heatmap },
+        { id: "raci", label: labels.view_raci }
+      ];
+      var el = document.getElementById("tabs");
+      el.innerHTML = "";
+      var i = 0;
+      while (i < tabs.length) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "tab-btn";
+        if (tabs[i].id === activeTab) {
+          btn.className = "tab-btn active";
+        }
+        btn.textContent = tabs[i].label;
+        (function (id) {
+          btn.addEventListener("click", function () {
+            activeTab = id;
+            renderTabs();
+            renderView();
+          });
+        })(tabs[i].id);
+        el.appendChild(btn);
+        i = i + 1;
+      }
+    }
+
+    function renderView() {
+      var panel = document.getElementById("viz-panel");
+      if (activeTab === "flow") {
+        FlowDiagram.render(panel, project, null);
+        return;
+      }
+      if (activeTab === "timeline") {
+        Timeline.render(panel, project, function () {
+          Timeline.render(panel, project, null);
+        });
+        return;
+      }
+      if (activeTab === "heatmap") {
+        Heatmap.render(panel, project, function (risk) {
+          var detail = document.getElementById("heatmap-detail");
+          if (detail) {
+            detail.innerHTML = "<strong>" + risk.title + "</strong><br>" + risk.description +
+              "<br>Likelihood " + risk.likelihood + " · Impact " + risk.impact +
+              " · Score " + RiskAnalyzer.score(risk) + " (" + RiskAnalyzer.level(risk) + ")";
+          }
+        });
+        return;
+      }
+      if (activeTab === "raci") {
+        RaciGrid.render(panel, project, null);
+      }
+    }
+
+    PrismStorage.applyTheme();
+    Promise.all([
+      ConfigManager.load(),
+      StateManager.ready()
+    ]).then(function (parts) {
+      var cfg = parts[0];
+      config = cfg;
+      project = StateManager.get();
+      if (!project || !project.phases || project.phases.length === 0) {
+        document.querySelector("main").innerHTML = "<p>No plan to visualise. <a href='/pages/index.html'>Home</a></p>";
+        return;
+      }
+      document.getElementById("viz-title").textContent = project.project_name + " — Visualizer";
+      renderTabs();
+      renderView();
+    });
+  </script>
+  <script src="/static/js/core/footer.js?v=20260809-2"></script>
+</body>
+</html>

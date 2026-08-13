@@ -1,0 +1,116 @@
+tiers:
+  prohibited:
+    id: prohibited
+    label: Prohibited
+    color: "#B00020"
+    message: This use case appears to fall under prohibited AI practices. Stop and seek legal review. PRISM will not generate a delivery plan.
+    trigger_conditions:
+      - domain: social_scoring
+        affects_people: "yes"
+      - domain: real_time_biometric_public
+        affects_people: "yes"
+      - domain: subliminal_manipulation
+        affects_people: "yes"
+    mandatory_work_packages: []
+  high_risk:
+    id: high_risk
+    label: High Risk
+    color: "#E65100"
+    message: High-risk AI systems carry mandatory EU AI Act obligations. Include all work packages below in the plan.
+    trigger_conditions:
+      - domain: employment
+        affects_people: "yes"
+      - domain: credit_scoring
+        affects_people: "yes"
+      - domain: education_access
+        affects_people: "yes"
+      - domain: essential_services
+        affects_people: "yes"
+      - domain: law_enforcement
+        affects_people: "yes"
+      - domain: migration
+        affects_people: "yes"
+      - domain: justice
+        affects_people: "yes"
+      - domain: critical_infrastructure
+        affects_people: "yes"
+      - domain: biometric_identification
+        affects_people: "yes"
+      - autonomy: fully_automated
+        affects_people: "yes"
+        domain: other_people_decisions
+    mandatory_work_packages:
+      - Risk Management System
+      - Data Governance Evidence
+      - Technical Documentation
+      - Logging and Audit Trail
+      - Human Oversight Design
+      - Accuracy, Robustness, and Cybersecurity Evidence
+      - Conformity Assessment
+      - Post-Market Monitoring Plan
+  limited_risk:
+    id: limited_risk
+    label: Limited Risk (Transparency Obligations)
+    color: "#F9A825"
+    message: Limited-risk systems require transparency. Users must know they interact with AI.
+    trigger_conditions:
+      - domain: chatbot_interaction
+      - domain: emotion_recognition
+      - domain: deepfake_or_synthetic
+      - autonomy: assisted
+        affects_people: "yes"
+    mandatory_work_packages:
+      - Disclosure to end users that they interact with AI
+  minimal_risk:
+    id: minimal_risk
+    label: Minimal Risk
+    color: "#2E7D32"
+    message: Minimal risk under the screening questions. Continue with good engineering practice.
+    trigger_conditions: []
+    mandatory_work_packages: []
+
+domains:
+  - id: employment
+    label: Employment, worker management, or access to self-employment
+  - id: credit_scoring
+    label: Credit scoring or access to financial services
+  - id: education_access
+    label: Education or vocational training access
+  - id: essential_services
+    label: Access to essential public or private services
+  - id: law_enforcement
+    label: Law enforcement
+  - id: migration
+    label: Migration, asylum, or border control
+  - id: justice
+    label: Administration of justice or democratic processes
+  - id: critical_infrastructure
+    label: Critical infrastructure management
+  - id: biometric_identification
+    label: Biometric identification
+  - id: social_scoring
+    label: Social scoring by public authorities
+  - id: real_time_biometric_public
+    label: Real-time remote biometric identification in public spaces
+  - id: subliminal_manipulation
+    label: Subliminal or manipulative techniques causing harm
+  - id: chatbot_interaction
+    label: Chatbot or conversational AI interacting with people
+  - id: emotion_recognition
+    label: Emotion recognition systems
+  - id: deepfake_or_synthetic
+    label: Deepfake or synthetic media generation
+  - id: other_people_decisions
+    label: Other decisions that affect people
+  - id: internal_ops
+    label: Internal operations with no people decisions
+  - id: none
+    label: None of the above / not people-facing
+
+autonomy_levels:
+  - id: human_in_loop
+    label: Human makes every decision; AI only advises
+  - id: assisted
+    label: AI recommends; human can override easily
+  - id: fully_automated
+    label: AI decides with little or no human review

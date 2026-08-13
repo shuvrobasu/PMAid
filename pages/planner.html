@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PMAID — Planner</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css?v=20260810-3">
+  <link rel="stylesheet" href="/static/css/canvas.css">
+  <link rel="stylesheet" href="/static/css/themes/light.css">
+  <link rel="stylesheet" href="/static/css/themes/dark.css">
+</head>
+<body class="theme-light">
+  <header class="app-header planner-app-header">
+    <a class="brand" href="/pages/index.html"><span class="brand-mark">PMAID</span><span class="brand-name">PM AI Aid™</span></a>
+    <nav class="app-nav" aria-label="Primary navigation">
+      <a href="/pages/verdict.html">Verdict</a>
+      <a href="/pages/visualizer.html">Visualizer</a>
+      <a href="/pages/export.html">Export</a>
+      <a href="/pages/help.html">Help</a>
+    </nav>
+  </header>
+
+  <main class="container-wide planner-page">
+    <div class="planner-summary">
+      <h1 id="project-title">Planner</h1>
+      <div class="stats-bar" id="stats-bar"></div>
+    </div>
+    <section class="card non-ai-plan" id="non-ai-plan" hidden></section>
+    <div class="planner-layout" id="planner-layout">
+      <aside class="phase-sidebar">
+        <h2>Phases</h2>
+        <div id="phase-list"></div>
+      </aside>
+      <section>
+        <div class="canvas-main" id="flow-canvas"></div>
+        <div class="detail-panel card" id="phase-detail">
+          <p class="muted">Click a phase on the canvas or enable phases in the list.</p>
+        </div>
+      </section>
+    </div>
+    <section class="card assumption-register" id="assumption-register"></section>
+    <div class="planner-bottom-bar" id="devils-advocate-actions" hidden>
+      <button type="button" class="btn" id="devils-advocate-button">What am I missing?</button>
+    </div>
+    <section class="card ai-output" id="devils-advocate-output" hidden>
+      <div class="ai-output-heading">
+        <strong>AI analysis — not a gate.</strong>
+        <button type="button" class="btn btn-ghost" id="dismiss-devils-advocate">Dismiss</button>
+      </div>
+      <p id="devils-advocate-text"></p>
+    </section>
+  </main>
+
+  <script src="/static/js/core/storage.js"></script>
+  <script src="/static/js/core/config-manager.js"></script>
+  <script src="/static/js/core/state-manager.js"></script>
+  <script src="/static/js/modules/local-ai.js"></script>
+  <script src="/static/js/modules/eu-classifier.js"></script>
+  <script src="/static/js/modules/rule-engine.js"></script>
+  <script src="/static/js/modules/methodology-mapper.js"></script>
+  <script src="/static/js/modules/raci-builder.js"></script>
+  <script src="/static/js/modules/process-builder.js"></script>
+  <script src="/static/js/viz/flow-diagram.js"></script>
+  <script>
+    var project = null;
+    var config = null;
+
+    function projectTaskStatuses() {
+      var statuses = config.ui.task_statuses;
+      if (Array.isArray(statuses) === false) {
+        statuses = defaultTaskStatuses();
+      }
+      return statuses;
+    }
+
+    function saveProject() {
+      StateManager.set(project);
+    }
+
+    function refreshStats() {
+      var s = ProcessBuilder.stats(project);
+      var labels = config.ui.labels;
+      var done = 0;
+      var wip = 0;
+      var pi = 0;
+      while (pi < project.phases.length) {
+        if (project.phases[pi].enabled) {
+          var pr = ProcessBuilder.phaseProgress(project.phases[pi]);
+          done = done + pr.done;
+          wip = wip + pr.wip;
+        }
+        pi = pi + 1;
+      }
+      document.getElementById("stats-bar").innerHTML =
+        "<span class='stat-chip'>" + labels.phases + ": " + s.phaseCount + "</span>" +
+        "<span class='stat-chip'>" + labels.tasks + ": " + s.taskCount + "</span>" +
+        "<span class='stat-chip'>Done: " + done + "</span>" +
+        "<span class='stat-chip'>WIP: " + wip + "</span>" +
+        "<span class='stat-chip'>" + labels.risks + ": " + s.riskCount + "</span>" +
+        "<span class='stat-chip'>" + labels.roles + ": " + s.roleCount + "</span>" +
+        "<span class='stat-chip'>" + labels.duration + ": " + s.durationMin + "–" + s.durationMax + "</span>";
+    }
+
+    function renderPhaseList() {
+      var el = document.getElementById("phase-list");
+      el.innerHTML = "";
+      var i = 0;
+      while (i < project.phases.length) {
+        var ph = project.phases[i];
+        var row = document.createElement("div");
+        row.className = "phase-list-item";
+        if (!ph.enabled) {
+          row.className = "phase-list-item disabled";
+        }
+        if (selectedPhaseId === ph.phase_id) {
+          row.className = row.className + " selected";
+        }
+        var cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = ph.enabled;
+        if (ph.removable === false) {
+          cb.disabled = true;
+        }
+        (function (phaseId) {
+          cb.addEventListener("change", function (ev) {
+            ProcessBuilder.togglePhase(project, phaseId, ev.target.checked);
+            project.risks = ProcessBuilder.collectRisks(project.phases, config);
+            ProcessBuilder.hydratePlanningRegisters(project, config);
+            saveProject();
+            renderAll();
+          });
+        })(ph.phase_id);
+        var name = document.createElement("span");
+        var pr = ProcessBuilder.phaseProgress(ph);
+        var phaseSt = ph.status || "not_started";
+        name.textContent = ph.display_name + " · " + phaseSt + " · " + pr.done + "/" + pr.total + " tasks";
+        name.style.flex = "1";
+        name.style.cursor = "pointer";
+        name.title = pr.total + " tasks on this phase";
+        (function (phaseId) {
+          name.addEventListener("click", function () {
+            showDetail(phaseId);
+          });
+        })(ph.phase_id);
+        var up = document.createElement("button");
+        up.type = "button";
+        up.className = "btn btn-ghost";
+        up.textContent = "↑";
+        (function (phaseId) {
+          up.addEventListener("click", function () {
+            ProcessBuilder.reorderPhase(project, phaseId, -1);
+            StateManager.set(project);
+            renderAll();
+          });
+        })(ph.phase_id);
+        var down = document.createElement("button");
+        down.type = "button";
+        down.className = "btn btn-ghost";
+        down.textContent = "↓";
+        (function (phaseId) {
+          down.addEventListener("click", function () {
+            ProcessBuilder.reorderPhase(project, phaseId, 1);
+            StateManager.set(project);
+            renderAll();
+          });
+        })(ph.phase_id);
+        row.appendChild(cb);
+        row.appendChild(name);
+        row.appendChild(up);
+        row.appendChild(down);
+        el.appendChild(row);
+        i = i + 1;
+      }
+    }
+
+    var selectedPhaseId = null;
+
+    function defaultTaskStatuses() {
+      return [
+        { id: "not_started", label: "Not started" },
+        { id: "wip", label: "WIP" },
+        { id: "done", label: "Done" },
+        { id: "na", label: "N/A" }
+      ];
+    }
+
+    function defaultGateStatuses() {
+      return [
+        { id: "open", label: "Open" },
+        { id: "met", label: "Met" },
+        { id: "blocked", label: "Blocked" }
+      ];
+    }
+
+    function statusOptions(list, current) {
+      if (!list || list.length === 0) {
+        list = defaultTaskStatuses();
+      }
+      var select = document.createElement("select");
+      select.className = "status-select";
+      var i = 0;
+      while (i < list.length) {
+        var opt = document.createElement("option");
+        opt.value = list[i].id;
+        opt.textContent = list[i].label;
+        if (list[i].id === current) {
+          opt.selected = true;
+        }
+        select.appendChild(opt);
+        i = i + 1;
+      }
+      return select;
+    }
+
+    function showDetail(phaseId) {
+      selectedPhaseId = phaseId;
+      var ph = null;
+      var i = 0;
+      while (i < project.phases.length) {
+        if (project.phases[i].phase_id === phaseId) {
+          ph = project.phases[i];
+          break;
+        }
+        i = i + 1;
+      }
+      if (!ph) {
+        return;
+      }
+      renderPhaseList();
+      var labels = config.ui.labels;
+      var taskStatuses = config.ui.task_statuses;
+      if (!taskStatuses) {
+        taskStatuses = defaultTaskStatuses();
+      }
+      var gateStatuses = config.ui.gate_statuses;
+      if (!gateStatuses) {
+        gateStatuses = defaultGateStatuses();
+      }
+      var panel = document.getElementById("phase-detail");
+      panel.innerHTML = "";
+
+      var h2 = document.createElement("h2");
+      h2.textContent = ph.display_name;
+      panel.appendChild(h2);
+
+      var desc = document.createElement("p");
+      desc.textContent = ph.description;
+      panel.appendChild(desc);
+
+      var phaseRow = document.createElement("div");
+      phaseRow.className = "task-status-row";
+      var phaseLabel = document.createElement("div");
+      phaseLabel.innerHTML = "<strong>" + (labels.phase_status || "Phase status") + "</strong>";
+      var phaseSel = statusOptions(taskStatuses, ph.status || "not_started");
+      phaseSel.addEventListener("change", function (ev) {
+        ProcessBuilder.setPhaseStatus(project, phaseId, ev.target.value);
+        StateManager.set(project);
+        renderPhaseList();
+        refreshStats();
+      });
+      phaseRow.appendChild(phaseLabel);
+      phaseRow.appendChild(phaseSel);
+      panel.appendChild(phaseRow);
+
+      var prog = ProcessBuilder.phaseProgress(ph);
+      var progEl = document.createElement("p");
+      progEl.className = "stat-chip";
+      progEl.textContent = labels.phase_progress + ": " + prog.done + " done · " + prog.wip + " WIP · " + prog.total + " tasks";
+      panel.appendChild(progEl);
+
+      var resync = document.createElement("button");
+      resync.type = "button";
+      resync.className = "btn btn-ghost";
+      resync.textContent = labels.repair_tasks || "Reload all phase tasks from master";
+      resync.addEventListener("click", function () {
+        ProcessBuilder.resyncFromMaster(project, config);
+        StateManager.set(project);
+        renderAll();
+        showDetail(phaseId);
+      });
+      panel.appendChild(resync);
+
+      if (ph.methodology_label) {
+        var meth = document.createElement("p");
+        meth.className = "muted";
+        meth.textContent = "Methodology overlay: " + ph.methodology_label;
+        panel.appendChild(meth);
+      }
+      if (ph.is_iterative && ph.iteration_hint) {
+        var warn = document.createElement("div");
+        warn.className = "warning-box";
+        warn.textContent = ph.iteration_hint;
+        panel.appendChild(warn);
+      }
+      if (ph.guidance) {
+        var gdiv = document.createElement("div");
+        gdiv.className = "guidance-popup";
+        gdiv.innerHTML = "<strong>" + (ph.guidance.title || "Guidance") + "</strong><p>" + (ph.guidance.body || "") + "</p>";
+        panel.appendChild(gdiv);
+      }
+
+      var th = document.createElement("h3");
+      th.textContent = labels.tasks + " (" + ph.tasks.length + ") — mark each";
+      panel.appendChild(th);
+
+      if (!ph.tasks || ph.tasks.length === 0) {
+        var empty = document.createElement("p");
+        empty.className = "muted";
+        empty.textContent = "No tasks for this phase id. Click reload above.";
+        panel.appendChild(empty);
+      }
+
+      var taskList = document.createElement("ul");
+      taskList.className = "task-status-list";
+      i = 0;
+      while (i < ph.tasks.length) {
+        var task = ph.tasks[i];
+        var li = document.createElement("li");
+        li.className = "task-status-row";
+        if (task.status === "done") {
+          li.className = "task-status-row is-done";
+        }
+        if (task.status === "wip") {
+          li.className = "task-status-row is-wip";
+        }
+        var body = document.createElement("div");
+        body.innerHTML = "<strong>" + task.name + "</strong> (" + task.complexity + ")<br><span class='muted'>" + task.description + "</span>";
+        var sel = statusOptions(taskStatuses, task.status || "not_started");
+        (function (pid, tid) {
+          sel.addEventListener("change", function (ev) {
+            ProcessBuilder.setTaskStatus(project, pid, tid, ev.target.value);
+            StateManager.set(project);
+            renderPhaseList();
+            refreshStats();
+            showDetail(pid);
+          });
+        })(ph.phase_id, task.task_id);
+        li.appendChild(body);
+        li.appendChild(sel);
+        taskList.appendChild(li);
+        i = i + 1;
+      }
+      panel.appendChild(taskList);
+
+      var gh = document.createElement("h3");
+      gh.textContent = "Gates — " + labels.gate_status;
+      panel.appendChild(gh);
+      var gateList = document.createElement("ul");
+      gateList.className = "task-status-list";
+      i = 0;
+      while (i < ph.gates.length) {
+        var gate = ph.gates[i];
+        var gli = document.createElement("li");
+        gli.className = "task-status-row";
+        var gbody = document.createElement("div");
+        gbody.innerHTML = "<strong>" + gate.name + "</strong><br><span class='muted'>" + gate.description + "</span>";
+        var gsel = statusOptions(gateStatuses, gate.status || "open");
+        (function (pid, gid) {
+          gsel.addEventListener("change", function (ev) {
+            ProcessBuilder.setGateStatus(project, pid, gid, ev.target.value);
+            StateManager.set(project);
+            showDetail(pid);
+          });
+        })(ph.phase_id, gate.gate_id);
+        gli.appendChild(gbody);
+        gli.appendChild(gsel);
+        gateList.appendChild(gli);
+        i = i + 1;
+      }
+      panel.appendChild(gateList);
+
+      var rh = document.createElement("h3");
+      rh.textContent = labels.roles;
+      panel.appendChild(rh);
+      var rul = document.createElement("ul");
+      i = 0;
+      while (i < ph.roles.length) {
+        var rli = document.createElement("li");
+        rli.textContent = ph.roles[i].name;
+        rul.appendChild(rli);
+        i = i + 1;
+      }
+      panel.appendChild(rul);
+
+      var stakeholderHeading = document.createElement("h3");
+      stakeholderHeading.textContent = "Stakeholder map — who needs to know what";
+      panel.appendChild(stakeholderHeading);
+      var stakeholderHint = document.createElement("p");
+      stakeholderHint.className = "muted";
+      stakeholderHint.textContent = "Name the person where known and confirm what this role must receive, review, or approve in this phase.";
+      panel.appendChild(stakeholderHint);
+      var stakeholderList = document.createElement("div");
+      stakeholderList.className = "stakeholder-map-list";
+      var stakeholders = project.stakeholder_map;
+      if (Array.isArray(stakeholders) === false) {
+        stakeholders = [];
+      }
+      i = 0;
+      while (i < stakeholders.length) {
+        if (stakeholders[i].phase_id === ph.phase_id) {
+          var stakeholder = stakeholders[i];
+          var stakeholderRow = document.createElement("div");
+          stakeholderRow.className = "stakeholder-map-row";
+          var stakeholderRole = document.createElement("div");
+          var involvement = stakeholder.involvement;
+          if (involvement === undefined) {
+            involvement = "I";
+          }
+          stakeholderRole.innerHTML = "<strong>" + stakeholder.role_name + "</strong><br><span class='muted'>RACI: " + involvement + "</span>";
+          var ownerLabel = document.createElement("label");
+          ownerLabel.textContent = "Named owner";
+          var ownerInput = document.createElement("input");
+          ownerInput.type = "text";
+          ownerInput.placeholder = "Name or team";
+          var owners = project.raci.owners;
+          if (owners === undefined) {
+            owners = {};
+            project.raci.owners = owners;
+          }
+          var savedOwner = owners[stakeholder.role_id];
+          if (typeof savedOwner === "string") {
+            ownerInput.value = savedOwner;
+          }
+          (function (roleId, activePhaseId) {
+            ownerInput.addEventListener("change", function (event) {
+              project.raci.owners[roleId] = event.target.value.trim();
+              ProcessBuilder.refreshStakeholderQuestions(project);
+              saveProject();
+              showDetail(activePhaseId);
+            });
+          })(stakeholder.role_id, ph.phase_id);
+          ownerLabel.appendChild(ownerInput);
+          var needLabel = document.createElement("label");
+          needLabel.textContent = "Information or decision needed";
+          var needInput = document.createElement("textarea");
+          needInput.value = stakeholder.information_need;
+          (function (stakeholderId, activePhaseId) {
+            needInput.addEventListener("change", function (event) {
+              var s = 0;
+              while (s < project.stakeholder_map.length) {
+                if (project.stakeholder_map[s].stakeholder_id === stakeholderId) {
+                  project.stakeholder_map[s].information_need = event.target.value.trim();
+                  break;
+                }
+                s = s + 1;
+              }
+              ProcessBuilder.refreshStakeholderQuestions(project);
+              saveProject();
+              showDetail(activePhaseId);
+            });
+          })(stakeholder.stakeholder_id, ph.phase_id);
+          needLabel.appendChild(needInput);
+          stakeholderRow.appendChild(stakeholderRole);
+          stakeholderRow.appendChild(ownerLabel);
+          stakeholderRow.appendChild(needLabel);
+          stakeholderList.appendChild(stakeholderRow);
+        }
+        i = i + 1;
+      }
+      if (stakeholderList.children.length === 0) {
+        var noStakeholders = document.createElement("p");
+        noStakeholders.className = "muted";
+        noStakeholders.textContent = "No stakeholder roles are configured for this phase.";
+        stakeholderList.appendChild(noStakeholders);
+      }
+      panel.appendChild(stakeholderList);
+
+      var rkh = document.createElement("h3");
+      rkh.textContent = labels.risks;
+      panel.appendChild(rkh);
+      var rkul = document.createElement("ul");
+      i = 0;
+      while (i < ph.risks.length) {
+        var rkli = document.createElement("li");
+        rkli.innerHTML = "<strong>" + ph.risks[i].title + "</strong> — " + ph.risks[i].description;
+        rkul.appendChild(rkli);
+        i = i + 1;
+      }
+      panel.appendChild(rkul);
+
+      var qb = document.createElement("div");
+      qb.className = "question-list";
+      var qbTitle = document.createElement("strong");
+      qbTitle.textContent = labels.question_back + ":";
+      qb.appendChild(qbTitle);
+      var qul = document.createElement("ul");
+      var qs = project.question_back_list || [];
+      i = 0;
+      var any = false;
+      while (i < qs.length) {
+        if (qs[i].phase_id === ph.phase_id) {
+          var qli = document.createElement("li");
+          qli.textContent = qs[i].question;
+          qul.appendChild(qli);
+          any = true;
+        }
+        i = i + 1;
+      }
+      if (!any) {
+        var nli = document.createElement("li");
+        nli.className = "muted";
+        nli.textContent = "No open questions for this phase.";
+        qul.appendChild(nli);
+      }
+      qb.appendChild(qul);
+      panel.appendChild(qb);
+    }
+
+    function assumptionStatusOptions(current) {
+      var options = [
+        { id: "open", label: "Open" },
+        { id: "confirmed", label: "Confirmed" },
+        { id: "invalidated", label: "Invalidated" }
+      ];
+      return statusOptions(options, current);
+    }
+
+    function assumptionPhaseOptions(current) {
+      var select = document.createElement("select");
+      select.className = "status-select";
+      var phases = config.phases.phases;
+      var i = 0;
+      while (i < phases.length) {
+        select.appendChild(
+          ConfigLibraryOption(phases[i].phase_id, phases[i].display_name, current)
+        );
+        i = i + 1;
+      }
+      if (current === "non_ai_plan") {
+        select.appendChild(ConfigLibraryOption("non_ai_plan", "Alternative plan", current));
+      }
+      return select;
+    }
+
+    function ConfigLibraryOption(value, label, current) {
+      var option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      if (value === current) {
+        option.selected = true;
+      }
+      return option;
+    }
+
+    function updateAssumption(assumptionId, field, value) {
+      var i = 0;
+      while (i < project.assumptions.length) {
+        if (project.assumptions[i].assumption_id === assumptionId) {
+          project.assumptions[i][field] = value;
+          saveProject();
+          return;
+        }
+        i = i + 1;
+      }
+    }
+
+    function deleteAssumption(assumptionId) {
+      var next = [];
+      var i = 0;
+      while (i < project.assumptions.length) {
+        if (project.assumptions[i].assumption_id !== assumptionId) {
+          next.push(project.assumptions[i]);
+        }
+        i = i + 1;
+      }
+      project.assumptions = next;
+      saveProject();
+      renderAssumptionRegister();
+    }
+
+    function addAssumption() {
+      var phaseId = "problem_framing";
+      if (project.non_ai_plan) {
+        phaseId = "non_ai_plan";
+      }
+      project.assumptions.push({
+        assumption_id: "assumption_" + Date.now(),
+        statement: "New assumption — replace this text.",
+        phase_id: phaseId,
+        owner: "",
+        source: "Project manager",
+        status: "open"
+      });
+      saveProject();
+      renderAssumptionRegister();
+    }
+
+    function renderAssumptionRegister() {
+      var root = document.getElementById("assumption-register");
+      root.innerHTML = "";
+      var heading = document.createElement("div");
+      heading.className = "register-heading";
+      var headingText = document.createElement("div");
+      headingText.innerHTML = "<h2>Assumption register</h2><p class='muted'>Things the plan currently takes as true. Confirm or invalidate them; they are not risks.</p>";
+      var addButton = document.createElement("button");
+      addButton.type = "button";
+      addButton.className = "btn btn-ghost";
+      addButton.textContent = "Add assumption";
+      addButton.addEventListener("click", addAssumption);
+      heading.appendChild(headingText);
+      heading.appendChild(addButton);
+      root.appendChild(heading);
+      var assumptions = project.assumptions;
+      if (Array.isArray(assumptions) === false) {
+        assumptions = [];
+        project.assumptions = assumptions;
+      }
+      var list = document.createElement("div");
+      list.className = "assumption-list";
+      var i = 0;
+      while (i < assumptions.length) {
+        var assumption = assumptions[i];
+        var row = document.createElement("div");
+        row.className = "assumption-row";
+        var statementLabel = document.createElement("label");
+        statementLabel.textContent = "Assumption";
+        var statement = document.createElement("textarea");
+        statement.value = assumption.statement;
+        (function (assumptionId) {
+          statement.addEventListener("change", function (event) {
+            updateAssumption(assumptionId, "statement", event.target.value.trim());
+          });
+        })(assumption.assumption_id);
+        statementLabel.appendChild(statement);
+        var ownerLabel = document.createElement("label");
+        ownerLabel.textContent = "Confirmation owner";
+        var owner = document.createElement("input");
+        owner.type = "text";
+        owner.value = assumption.owner;
+        (function (assumptionId) {
+          owner.addEventListener("change", function (event) {
+            updateAssumption(assumptionId, "owner", event.target.value.trim());
+          });
+        })(assumption.assumption_id);
+        ownerLabel.appendChild(owner);
+        var phaseLabel = document.createElement("label");
+        phaseLabel.textContent = "Confirm by";
+        var phaseSelect = assumptionPhaseOptions(assumption.phase_id);
+        (function (assumptionId) {
+          phaseSelect.addEventListener("change", function (event) {
+            updateAssumption(assumptionId, "phase_id", event.target.value);
+          });
+        })(assumption.assumption_id);
+        phaseLabel.appendChild(phaseSelect);
+        var statusLabel = document.createElement("label");
+        statusLabel.textContent = "Status";
+        var statusSelect = assumptionStatusOptions(assumption.status);
+        (function (assumptionId) {
+          statusSelect.addEventListener("change", function (event) {
+            updateAssumption(assumptionId, "status", event.target.value);
+          });
+        })(assumption.assumption_id);
+        statusLabel.appendChild(statusSelect);
+        var source = document.createElement("div");
+        source.className = "muted assumption-source";
+        source.textContent = "Source: " + assumption.source;
+        var remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "btn btn-ghost";
+        remove.textContent = "Remove";
+        (function (assumptionId) {
+          remove.addEventListener("click", function () {
+            deleteAssumption(assumptionId);
+          });
+        })(assumption.assumption_id);
+        row.appendChild(statementLabel);
+        row.appendChild(ownerLabel);
+        row.appendChild(phaseLabel);
+        row.appendChild(statusLabel);
+        row.appendChild(source);
+        row.appendChild(remove);
+        list.appendChild(row);
+        i = i + 1;
+      }
+      if (assumptions.length === 0) {
+        var empty = document.createElement("p");
+        empty.className = "muted";
+        empty.textContent = "No assumptions recorded.";
+        list.appendChild(empty);
+      }
+      root.appendChild(list);
+    }
+
+    function renderNonAIPlan() {
+      document.getElementById("planner-layout").hidden = true;
+      document.getElementById("devils-advocate-actions").hidden = true;
+      var root = document.getElementById("non-ai-plan");
+      root.hidden = false;
+      root.innerHTML = "";
+      var plan = project.non_ai_plan;
+      document.getElementById("project-title").textContent = project.project_name + " — Alternative plan";
+      var done = 0;
+      var i = 0;
+      while (i < plan.steps.length) {
+        if (plan.steps[i].status === "done") {
+          done = done + 1;
+        }
+        i = i + 1;
+      }
+      document.getElementById("stats-bar").innerHTML =
+        "<span class='stat-chip'>NOT-AI path</span>" +
+        "<span class='stat-chip'>Steps: " + plan.steps.length + "</span>" +
+        "<span class='stat-chip'>Done: " + done + "</span>";
+      var title = document.createElement("h2");
+      title.textContent = plan.title;
+      root.appendChild(title);
+      var approach = document.createElement("p");
+      approach.innerHTML = "<strong>Suggested approach:</strong> " + plan.approach;
+      root.appendChild(approach);
+      var outcome = document.createElement("p");
+      outcome.innerHTML = "<strong>Target outcome:</strong> " + plan.outcome;
+      root.appendChild(outcome);
+      var heading = document.createElement("h3");
+      heading.textContent = "Mini-plan";
+      root.appendChild(heading);
+      var list = document.createElement("ol");
+      list.className = "task-status-list non-ai-step-list";
+      i = 0;
+      while (i < plan.steps.length) {
+        var step = plan.steps[i];
+        var item = document.createElement("li");
+        item.className = "task-status-row";
+        var text = document.createElement("div");
+        text.textContent = step.name;
+        var status = statusOptions(projectTaskStatuses(), step.status);
+        (function (stepId) {
+          status.addEventListener("change", function (event) {
+            var s = 0;
+            while (s < project.non_ai_plan.steps.length) {
+              if (project.non_ai_plan.steps[s].step_id === stepId) {
+                project.non_ai_plan.steps[s].status = event.target.value;
+                break;
+              }
+              s = s + 1;
+            }
+            saveProject();
+            renderNonAIPlan();
+          });
+        })(step.step_id);
+        item.appendChild(text);
+        item.appendChild(status);
+        list.appendChild(item);
+        i = i + 1;
+      }
+      root.appendChild(list);
+      var questionHeading = document.createElement("h3");
+      questionHeading.textContent = "Questions to answer before starting";
+      root.appendChild(questionHeading);
+      var questions = document.createElement("ul");
+      var questionList = project.question_back_list;
+      if (Array.isArray(questionList) === false) {
+        questionList = [];
+      }
+      i = 0;
+      while (i < questionList.length) {
+        var question = document.createElement("li");
+        question.textContent = questionList[i].question;
+        questions.appendChild(question);
+        i = i + 1;
+      }
+      root.appendChild(questions);
+      var actions = document.createElement("div");
+      actions.className = "list-actions";
+      actions.innerHTML = "<a class='btn' href='/pages/discovery.html?mode=edit'>Modify answers</a><a class='btn btn-ghost' href='/pages/verdict.html'>Back to verdict</a>";
+      root.appendChild(actions);
+    }
+
+    function renderAll() {
+      document.getElementById("project-title").textContent = project.project_name + " — Planner";
+      refreshStats();
+      renderPhaseList();
+      FlowDiagram.render(document.getElementById("flow-canvas"), project, showDetail);
+      renderAssumptionRegister();
+    }
+
+    function devilsAdvocatePrompt(activeProject) {
+      var phases = [];
+      var i = 0;
+      while (i < activeProject.phases.length) {
+        var sourcePhase = activeProject.phases[i];
+        var phase = {
+          phase_id: sourcePhase.phase_id,
+          display_name: sourcePhase.display_name,
+          enabled: sourcePhase.enabled,
+          gates: []
+        };
+        var gates = sourcePhase.gates;
+        if (gates === undefined) {
+          gates = [];
+        }
+        if (gates === null) {
+          gates = [];
+        }
+        var g = 0;
+        while (g < gates.length) {
+          var criteria = gates[g].criteria;
+          if (criteria === undefined) {
+            criteria = [];
+          }
+          if (criteria === null) {
+            criteria = [];
+          }
+          phase.gates.push({
+            name: gates[g].name,
+            criteria: criteria
+          });
+          g = g + 1;
+        }
+        phases.push(phase);
+        i = i + 1;
+      }
+      return "Act as a devil's advocate for this delivery plan. " +
+        "List up to five important things the plan is not covering. " +
+        "Be concise, specific, and do not invent facts. Phase and gate data: " + JSON.stringify(phases);
+    }
+
+    function runDevilsAdvocate() {
+      var actions = document.getElementById("devils-advocate-actions");
+      var button = document.getElementById("devils-advocate-button");
+      var output = document.getElementById("devils-advocate-output");
+      button.disabled = true;
+      LocalAI.complete(devilsAdvocatePrompt(project)).then(function (content) {
+        button.disabled = false;
+        if (content === null) {
+          actions.hidden = true;
+          output.hidden = true;
+          return;
+        }
+        document.getElementById("devils-advocate-text").textContent = content;
+        output.hidden = false;
+      }).catch(function () {
+        actions.hidden = true;
+        output.hidden = true;
+      });
+    }
+
+    function dismissDevilsAdvocate() {
+      document.getElementById("devils-advocate-output").hidden = true;
+    }
+
+    PrismStorage.applyTheme();
+    Promise.all([
+      ConfigManager.load(),
+      StateManager.ready()
+    ]).then(function (parts) {
+      var cfg = parts[0];
+      config = cfg;
+      project = StateManager.get();
+      if (!project) {
+        document.querySelector("main").innerHTML = "<p>No active project. <a href='/pages/index.html'>Home</a></p>";
+        return;
+      }
+      if (project.recommendations) {
+        if (project.recommendations.ai_type === "NOT_AI") {
+          if (project.eu_classification) {
+            if (project.eu_classification.hard_stop) {
+              document.querySelector("main").innerHTML = "<div class='card'><p>No plan is generated for a prohibited use case. <a href='/pages/verdict.html'>Back to verdict</a></p></div>";
+              return;
+            }
+          }
+          if (project.non_ai_plan === null) {
+            ProcessBuilder.buildNonAIPlan(project, config);
+          }
+          if (project.non_ai_plan === undefined) {
+            ProcessBuilder.buildNonAIPlan(project, config);
+          }
+          if (Array.isArray(project.assumptions) === false) {
+            project.assumptions = ProcessBuilder.buildNonAIAssumptions(project);
+          }
+          if (project.assumptions.length === 0) {
+            project.assumptions = ProcessBuilder.buildNonAIAssumptions(project);
+          }
+          saveProject();
+          renderNonAIPlan();
+          renderAssumptionRegister();
+          return;
+        }
+      }
+      if (!project.phases || project.phases.length === 0) {
+        if (project.recommendations) {
+          if (project.recommendations.ai_type !== "NOT_AI") {
+            if (project.recommendations.ai_type !== "NO_MATCH") {
+              ProcessBuilder.buildFromRecommendation(project, config);
+              StateManager.set(project);
+            }
+          }
+        }
+      }
+      if (!project.phases || project.phases.length === 0) {
+        document.querySelector("main").innerHTML = "<div class='card'><p>No plan phases (AI not recommended, no clear match, or prohibited). <a href='/pages/verdict.html'>Back to verdict</a></p></div>";
+        return;
+      }
+      ProcessBuilder.resyncFromMaster(project, config);
+      ProcessBuilder.hydrateStatuses(project);
+      ProcessBuilder.hydratePlanningRegisters(project, config);
+      saveProject();
+      renderAll();
+      var firstEnabled = null;
+      var fi = 0;
+      while (fi < project.phases.length) {
+        if (project.phases[fi].enabled) {
+          firstEnabled = project.phases[fi].phase_id;
+          break;
+        }
+        fi = fi + 1;
+      }
+      if (firstEnabled) {
+        showDetail(firstEnabled);
+      }
+      LocalAI.check(config).then(function (available) {
+        var actions = document.getElementById("devils-advocate-actions");
+        if (available === false) {
+          actions.hidden = true;
+          return;
+        }
+        actions.hidden = false;
+        document.getElementById("devils-advocate-button").addEventListener("click", runDevilsAdvocate);
+        document.getElementById("dismiss-devils-advocate").addEventListener("click", dismissDevilsAdvocate);
+      });
+    });
+  </script>
+  <script src="/static/js/core/footer.js?v=20260809-2"></script>
+</body>
+</html>

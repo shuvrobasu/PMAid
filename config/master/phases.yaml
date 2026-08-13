@@ -1,0 +1,369 @@
+phases:
+  - phase_id: problem_framing
+    display_name: Problem Framing & Discovery
+    description: AI feasibility assessment, suitability verdict, EU tier classification, bias pre-assessment
+    icon: "1"
+    color: "#1E3A5F"
+    order: 1
+    applicable_ai_types:
+      - supervised_classification
+      - supervised_regression
+      - generative_llm
+      - document_extraction
+      - anomaly_detection
+      - optimisation
+      - rules_engine
+      - not_ai
+    methodology_mapping:
+      scrum: discovery_sprint
+      waterfall: requirements
+      safe: pi_planning
+      kanban: intake
+      hybrid: stage_gate
+      custom: custom
+    default_duration:
+      min: 1
+      max: 3
+    default_tasks:
+      - t_problem_statement
+      - t_success_metrics
+      - t_ai_suitability
+      - t_eu_screen
+      - t_stakeholder_map
+    default_gates:
+      - g_problem_clear
+      - g_eu_tier_known
+    default_roles:
+      - r_tpm
+      - r_sponsor
+      - r_domain_sme
+    default_risks:
+      - risk_wrong_problem
+      - risk_eu_misclass
+    depends_on: []
+    is_iterative: false
+    iteration_hint: ""
+    configurable: true
+    removable: false
+  - phase_id: data_discovery
+    display_name: Data Discovery & Assessment
+    description: Data inventory, quality audit, gap analysis, privacy check, labelling effort estimate
+    icon: "2"
+    color: "#2E5A8F"
+    order: 2
+    applicable_ai_types:
+      - supervised_classification
+      - supervised_regression
+      - generative_llm
+      - document_extraction
+      - anomaly_detection
+      - optimisation
+    methodology_mapping:
+      scrum: discovery_sprint
+      waterfall: analysis
+      safe: pi_execution
+      kanban: ready_queue
+      hybrid: stage_gate
+      custom: custom
+    default_duration:
+      min: 2
+      max: 6
+    default_tasks:
+      - t_data_inventory
+      - t_quality_audit
+      - t_privacy_check
+      - t_labelling_estimate
+      - t_gap_analysis
+    default_gates:
+      - g_data_sufficient
+      - g_privacy_cleared
+    default_roles:
+      - r_data_engineer
+      - r_data_scientist
+      - r_privacy_officer
+      - r_domain_sme
+    default_risks:
+      - risk_data_gap
+      - risk_label_quality
+      - risk_privacy
+    depends_on:
+      - problem_framing
+    is_iterative: false
+    iteration_hint: ""
+    configurable: true
+    removable: true
+  - phase_id: solution_architecture
+    display_name: Solution Architecture
+    description: Model selection, pipeline architecture, monitoring design, ethics-by-design review
+    icon: "3"
+    color: "#3D7AB5"
+    order: 3
+    applicable_ai_types:
+      - supervised_classification
+      - supervised_regression
+      - generative_llm
+      - document_extraction
+      - anomaly_detection
+      - optimisation
+    methodology_mapping:
+      scrum: architecture_spike
+      waterfall: design
+      safe: architectural_runway
+      kanban: design_queue
+      hybrid: stage_gate
+      custom: custom
+    default_duration:
+      min: 1
+      max: 4
+    default_tasks:
+      - t_model_options
+      - t_pipeline_design
+      - t_monitoring_design
+      - t_ethics_review
+      - t_integration_map
+    default_gates:
+      - g_architecture_approved
+    default_roles:
+      - r_ml_engineer
+      - r_architect
+      - r_tpm
+      - r_ethics_lead
+    default_risks:
+      - risk_overfit_arch
+      - risk_integration
+    depends_on:
+      - data_discovery
+    is_iterative: false
+    iteration_hint: ""
+    configurable: true
+    removable: true
+  - phase_id: data_engineering
+    display_name: Data Engineering
+    description: Ingestion, cleaning, feature engineering, labelling, splits, data versioning
+    icon: "4"
+    color: "#4A90C8"
+    order: 4
+    applicable_ai_types:
+      - supervised_classification
+      - supervised_regression
+      - generative_llm
+      - document_extraction
+      - anomaly_detection
+      - optimisation
+    methodology_mapping:
+      scrum: sprint_execution
+      waterfall: build
+      safe: pi_execution
+      kanban: in_progress
+      hybrid: agile_execution
+      custom: custom
+    default_duration:
+      min: 3
+      max: 10
+    default_tasks:
+      - t_ingestion
+      - t_cleaning
+      - t_features
+      - t_labelling
+      - t_splits
+      - t_data_versioning
+    default_gates:
+      - g_training_ready
+    default_roles:
+      - r_data_engineer
+      - r_ml_engineer
+      - r_domain_sme
+    default_risks:
+      - risk_pipeline_debt
+      - risk_leakage
+    depends_on:
+      - solution_architecture
+    is_iterative: true
+    iteration_hint: Feature definitions often change after the first model cycles. Plan for partial re-runs.
+    configurable: true
+    removable: true
+  - phase_id: model_development
+    display_name: Model Development
+    description: Baseline, experiments, training cycles, tuning, experiment tracking, selection
+    icon: "5"
+    color: "#5BA3D9"
+    order: 5
+    applicable_ai_types:
+      - supervised_classification
+      - supervised_regression
+      - generative_llm
+      - document_extraction
+      - anomaly_detection
+      - optimisation
+    methodology_mapping:
+      scrum: sprint_execution
+      waterfall: build
+      safe: pi_execution
+      kanban: in_progress
+      hybrid: agile_execution
+      custom: custom
+    default_duration:
+      min: 4
+      max: 16
+    default_tasks:
+      - t_baseline
+      - t_experiment_design
+      - t_training_cycles
+      - t_tuning
+      - t_experiment_tracking
+      - t_model_selection
+    default_gates:
+      - g_model_beats_baseline
+    default_roles:
+      - r_data_scientist
+      - r_ml_engineer
+      - r_domain_sme
+    default_risks:
+      - risk_no_signal
+      - risk_experiment_chaos
+      - risk_compute_budget
+    depends_on:
+      - data_engineering
+    is_iterative: true
+    iteration_hint: Expect 5 to 20 training cycles. Done means the model beats an agreed baseline on held-out data, not that one experiment finished.
+    configurable: true
+    removable: true
+  - phase_id: validation_testing
+    display_name: Validation & Testing
+    description: Performance, bias, edge cases, adversarial, integration, load, UAT, regulatory checks
+    icon: "6"
+    color: "#6BB0A6"
+    order: 6
+    applicable_ai_types:
+      - supervised_classification
+      - supervised_regression
+      - generative_llm
+      - document_extraction
+      - anomaly_detection
+      - optimisation
+    methodology_mapping:
+      scrum: sprint_execution
+      waterfall: test
+      safe: pi_execution
+      kanban: validate
+      hybrid: stage_gate
+      custom: custom
+    default_duration:
+      min: 2
+      max: 6
+    default_tasks:
+      - t_perf_test
+      - t_bias_test
+      - t_edge_cases
+      - t_adversarial
+      - t_integration_test
+      - t_uat
+      - t_regulatory_check
+    default_gates:
+      - g_validation_passed
+      - g_fairness_accepted
+    default_roles:
+      - r_qa
+      - r_data_scientist
+      - r_domain_sme
+      - r_compliance
+    default_risks:
+      - risk_silent_failure
+      - risk_bias
+    depends_on:
+      - model_development
+    is_iterative: false
+    iteration_hint: ""
+    configurable: true
+    removable: true
+  - phase_id: deployment
+    display_name: Deployment & Integration
+    description: Shadow deploy, canary, A/B, monitoring activation, rollback definition
+    icon: "7"
+    color: "#7BC47F"
+    order: 7
+    applicable_ai_types:
+      - supervised_classification
+      - supervised_regression
+      - generative_llm
+      - document_extraction
+      - anomaly_detection
+      - optimisation
+      - rules_engine
+    methodology_mapping:
+      scrum: release_sprint
+      waterfall: release
+      safe: release_on_demand
+      kanban: deploy
+      hybrid: release
+      custom: custom
+    default_duration:
+      min: 1
+      max: 4
+    default_tasks:
+      - t_shadow
+      - t_canary
+      - t_monitoring_on
+      - t_rollback
+      - t_runbook
+    default_gates:
+      - g_go_live
+    default_roles:
+      - r_ml_engineer
+      - r_sre
+      - r_tpm
+    default_risks:
+      - risk_rollout
+      - risk_monitor_blind
+    depends_on:
+      - validation_testing
+    is_iterative: false
+    iteration_hint: ""
+    configurable: true
+    removable: true
+  - phase_id: hypercare
+    display_name: Hypercare & Operations
+    description: Drift monitoring, retraining triggers, feedback loop, incident response, BAU handover
+    icon: "8"
+    color: "#8B7355"
+    order: 8
+    applicable_ai_types:
+      - supervised_classification
+      - supervised_regression
+      - generative_llm
+      - document_extraction
+      - anomaly_detection
+      - optimisation
+    methodology_mapping:
+      scrum: sustainment
+      waterfall: operate
+      safe: continuous_operations
+      kanban: operate
+      hybrid: operate
+      custom: custom
+    default_duration:
+      min: 4
+      max: 12
+    default_tasks:
+      - t_drift_monitor
+      - t_retrain_triggers
+      - t_feedback_loop
+      - t_incident_response
+      - t_model_versioning
+      - t_bau_handover
+    default_gates:
+      - g_ops_ready
+    default_roles:
+      - r_ml_engineer
+      - r_sre
+      - r_product_owner
+      - r_tpm
+    default_risks:
+      - risk_drift
+      - risk_no_owner
+    depends_on:
+      - deployment
+    is_iterative: true
+    iteration_hint: Hypercare is ongoing. Models degrade. Plan retraining budget and ownership before go-live.
+    configurable: true
+    removable: true

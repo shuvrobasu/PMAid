@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PMAID — Splash</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css?v=20260809-2">
+  <link rel="stylesheet" href="/static/css/canvas.css">
+  <link rel="stylesheet" href="/static/css/themes/light.css">
+</head>
+<body class="theme-light">
+  <div class="splash-screen" id="splash">
+    <div class="splash-inner">
+      <div class="splash-logo">
+        <h1 id="splash-title">PMAID</h1>
+        <p id="splash-subtitle">Project Management AI Delivery</p>
+      </div>
+      <div class="splash-blocks">
+        <div class="splash-block" id="what-block">
+          <h2 id="what-heading">WHAT PMAID DOES</h2>
+          <ul id="what-list"></ul>
+        </div>
+        <div class="splash-block disclaimer" id="disclaimer-block">
+          <h2 id="disclaimer-heading">DO NOT ENTER CONFIDENTIAL OR PERSONAL DATA</h2>
+          <ul id="disclaimer-list"></ul>
+        </div>
+      </div>
+      <div class="splash-actions">
+        <button type="button" class="btn btn-success" id="enter-btn" style="display:none;"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/core/storage.js"></script>
+  <script src="/static/js/core/config-manager.js"></script>
+  <script>
+    function fillList(el, items) {
+      el.innerHTML = "";
+      var i = 0;
+      while (i < items.length) {
+        var li = document.createElement("li");
+        li.textContent = items[i];
+        el.appendChild(li);
+        i = i + 1;
+      }
+    }
+
+    function goEnter() {
+      window.location.href = "/pages/index.html";
+    }
+
+    ConfigManager.load().then(function (config) {
+      var ui = config.ui;
+      var splash = ui.splash;
+      document.getElementById("splash-title").textContent = splash.title;
+      document.getElementById("splash-subtitle").textContent = splash.subtitle;
+      document.getElementById("what-heading").textContent = splash.what_heading;
+      document.getElementById("disclaimer-heading").textContent = splash.disclaimer_heading;
+      fillList(document.getElementById("what-list"), splash.what_items);
+      fillList(document.getElementById("disclaimer-list"), splash.disclaimer_items);
+
+      var key = ui.samples.splash_key;
+      var acknowledged = PrismStorage.has(key);
+      var btn = document.getElementById("enter-btn");
+      var delay = splash.first_visit_delay_ms;
+      if (acknowledged) {
+        delay = splash.return_visit_delay_ms;
+        btn.textContent = splash.dismiss_button;
+        btn.style.display = "inline-block";
+        btn.addEventListener("click", function () {
+          goEnter();
+        });
+        window.setTimeout(function () {
+          goEnter();
+        }, delay);
+      } else {
+        btn.textContent = splash.enter_button;
+        window.setTimeout(function () {
+          btn.style.display = "inline-block";
+        }, delay);
+        btn.addEventListener("click", function () {
+          PrismStorage.save(key, true);
+          goEnter();
+        });
+      }
+    }).catch(function (err) {
+      document.body.innerHTML = "<p style='padding:2rem;color:#b00020;'>Failed to load config. Run python server.py from the project root. " + err + "</p>";
+    });
+  </script>
+  <script src="/static/js/core/footer.js?v=20260809-2"></script>
+</body>
+</html>

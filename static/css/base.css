@@ -1,0 +1,256 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.55;
+  color: var(--text, #1a1a1a);
+  background: var(--bg, #f4f6f9);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent, #4a90c8);
+  text-decoration: none;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0 0 0.65rem;
+  line-height: 1.2;
+  color: var(--navy, #1e3a5f);
+  letter-spacing: -0.015em;
+}
+
+h1 {
+  font-size: clamp(1.8rem, 3vw, 2.35rem);
+  font-weight: 750;
+}
+
+h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+p {
+  margin: 0 0 0.75rem;
+}
+
+ul {
+  margin: 0 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+img {
+  max-width: 100%;
+}
+
+.container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 3vw, 1.5rem) 3rem;
+}
+
+.container-wide {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 3vw, 1.5rem) 3rem;
+}
+
+main > h1 + .muted {
+  max-width: 760px;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  min-height: 64px;
+  background: linear-gradient(135deg, #17375e, #204d7d);
+  color: #fff;
+  padding: 0.7rem max(1rem, calc((100vw - 1400px) / 2 + 1.5rem));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 18px rgba(18, 45, 75, 0.16);
+}
+
+.app-header a {
+  color: #d6e8f8;
+}
+
+.app-header .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: #fff;
+  text-decoration: none;
+}
+
+.brand-mark {
+  padding: 0.22rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.brand-name {
+  color: #dce9f6;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+
+.app-nav a {
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-nav a:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  text-decoration: none;
+}
+
+.app-nav a[aria-current="page"] {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.exit-app-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 6px;
+  background: rgba(185, 20, 48, 0.8);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.exit-app-btn:hover {
+  background: #b91435;
+}
+
+.exit-app-btn:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.exit-app-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.exit-confirmation {
+  max-width: 620px;
+  margin: 12vh auto;
+  padding: 2rem;
+  border: 1px solid var(--border, #d8dee6);
+  border-radius: 12px;
+  background: var(--card, #fff);
+  box-shadow: 0 10px 30px rgba(30, 58, 95, 0.12);
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.4rem;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(74, 144, 200, 0.45);
+  outline-offset: 3px;
+}
+
+@media (max-width: 800px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .app-header {
+    position: relative;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-header {
+    align-items: flex-start;
+  }
+
+  .brand-name {
+    white-space: normal;
+  }
+}
+
+.muted {
+  color: var(--muted, #5c6b7a);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

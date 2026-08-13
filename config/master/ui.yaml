@@ -1,0 +1,216 @@
+app:
+  name: PMAID
+  full_name: PM AI Aid™
+  tagline: Know what you're building before you build it.
+  version: "1.0"
+
+theme:
+  default: light
+  navy: "#1E3A5F"
+  accent: "#4A90C8"
+  danger: "#B00020"
+  warning: "#E65100"
+  success: "#2E7D32"
+
+local_ai:
+  enabled: true
+  endpoint: http://localhost:8080/completion
+  model: local
+  timeout_seconds: 30
+  server_path: F:\llama-cpp-new\llama-server.exe
+  model_path: F:\Mistral-7B-Instruct-v0.3-Q4_K_M.gguf
+
+splash:
+  title: PMAID
+  subtitle: PM AI Aid™
+  what_heading: WHAT PMAID DOES
+  what_items:
+    - Helps Technical Programme Managers design and visualise AI project delivery processes
+    - Generates a tailored, configurable project framework based on your inputs
+    - Classifies your AI initiative under the EU AI Act and surfaces mandatory obligations
+    - Produces exportable artefacts: charter, risk register, RACI, hypercare plan
+    - All logic runs locally. No data leaves this machine.
+  disclaimer_heading: DO NOT ENTER CONFIDENTIAL OR PERSONAL DATA
+  disclaimer_items:
+    - PMAID is a planning and scoping tool. It does not store, transmit, or process real project data.
+    - "Do not enter: client names, employee names, system names, commercially sensitive details, personal data, or any information classified above PUBLIC in your organisation."
+    - All inputs are used only to generate a generic framework. Use placeholder names (for example Project Alpha or Client X).
+    - Even though this app runs on-premise with no network egress, your organisation's data classification policy still applies to what you type into any tool.
+    - PMAID accepts no liability for misuse of this tool or for decisions made based on its output. Output is a planning aid, not professional advice.
+  enter_button: I understand — Enter PMAID
+  dismiss_button: Dismiss
+  first_visit_delay_ms: 3000
+  return_visit_delay_ms: 2000
+
+labels:
+  start_discovery: Start Discovery
+  load_project: Load Saved Project
+  load_config: Load Config
+  sample_projects: Sample Projects
+  accept: Accept
+  modify: Modify
+  override: Override Manually
+  proceed_anyway: Proceed with AI anyway
+  next: Next
+  back: Back
+  save: Save
+  export: Export
+  planner: Planner
+  visualizer: Visualizer
+  config_centre: Configuration Centre
+  verdict_ai_title: AI is recommended
+  verdict_not_ai_title: AI is NOT recommended
+  confidence: Rule match confidence
+  because: Why PMAID recommends this
+  eu_tier: EU AI Act tier
+  mandatory_packages: Mandatory work packages
+  complexity: Estimated delivery complexity
+  alternatives: Other approaches to consider
+  phases: Phases
+  tasks: Tasks
+  risks: Risks
+  roles: Roles
+  assumptions: Assumptions
+  stakeholder_map: Stakeholder map
+  non_ai_plan: Alternative plan
+  version_history: Version history
+  duration: Duration range (weeks)
+  question_back: Before this phase starts, you need answers to
+  no_projects: No saved projects yet
+  wizard_step_1: Business Problem
+  wizard_step_2: Success Definition
+  wizard_step_3: Data State
+  wizard_step_4: Org Readiness
+  wizard_step_5: EU AI Act Screen
+  wizard_step_6: Methodology
+  project_name: Project name
+  view_flow: Process Flow
+  view_timeline: Timeline
+  view_heatmap: Risk Heat Map
+  view_raci: RACI Matrix
+  task_status: Task status
+  gate_status: Gate met
+  status_not_started: Not started
+  status_wip: WIP
+  status_done: Done
+  status_na: N/A
+  gate_open: Open
+  gate_met: Met
+  gate_blocked: Blocked
+  phase_progress: Phase progress
+  phase_status: Phase status
+  repair_tasks: Reload all phase tasks from master
+  resync_hint: Each phase has its own tasks. If a phase looks empty or identical, click Reload.
+
+task_statuses:
+  - id: not_started
+    label: Not started
+  - id: wip
+    label: WIP
+  - id: done
+    label: Done
+  - id: na
+    label: N/A
+
+gate_statuses:
+  - id: open
+    label: Open
+  - id: met
+    label: Met
+  - id: blocked
+    label: Blocked
+
+wizard:
+  success_options:
+    - id: cost
+      label: Reduce cost
+    - id: accuracy
+      label: Improve accuracy
+    - id: speed
+      label: Increase speed
+    - id: capability
+      label: Enable new capability
+    - id: risk_reduction
+      label: Reduce risk
+    - id: compliance
+      label: Meet compliance obligation
+  data_states:
+    - id: clean_labelled
+      label: Clean and labelled
+    - id: messy
+      label: Messy or inconsistent
+    - id: partial
+      label: Partial coverage
+    - id: none
+      label: No usable data yet
+    - id: pretrained
+      label: Pre-trained model in scope
+  pretrained_options:
+    - id: "yes"
+      label: Yes — pre-trained model available
+    - id: "no"
+      label: No pre-trained model
+  rule_complexity_options:
+    - id: low
+      label: Low — fixed steps, few exceptions
+    - id: medium
+      label: Medium — some judgement required
+    - id: high
+      label: High — many exceptions and edge cases
+  maturity_options:
+    - id: none
+      label: No prior AI delivery
+    - id: early
+      label: Early experiments only
+    - id: some
+      label: Some production AI
+    - id: mature
+      label: Mature AI operating model
+  team_options:
+    - id: no
+      label: No dedicated team
+    - id: partial
+      label: Partial team
+    - id: yes
+      label: Full team available
+  infra_options:
+    - id: none
+      label: No AI infra
+    - id: cloud
+      label: Cloud available
+    - id: onprem
+      label: On-prem available
+    - id: both
+      label: Cloud and on-prem
+  budget_options:
+    - id: fixed
+      label: Fixed budget
+    - id: phased
+      label: Phased funding
+    - id: unknown
+      label: Unknown
+  timeline_options:
+    - id: under_3m
+      label: Under 3 months
+    - id: "3_to_6m"
+      label: 3 to 6 months
+    - id: "6_to_12m"
+      label: 6 to 12 months
+    - id: over_12m
+      label: Over 12 months
+  affects_people_options:
+    - id: "yes"
+      label: Yes — affects decisions about people
+    - id: "no"
+      label: No — not about people decisions
+
+export:
+  charter: Project Charter
+  risk_register: Risk Register
+  raci: RACI Matrix
+  question_back_list: Question-Back List
+  print_hint: Use your browser Print dialog to save as PDF
+
+samples:
+  splash_key: prism_splash_acknowledged
+  config_org_key: prism_org_config

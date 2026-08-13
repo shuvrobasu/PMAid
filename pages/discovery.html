@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PMAID — Discovery</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css?v=20260809-2">
+  <link rel="stylesheet" href="/static/css/wizard.css">
+  <link rel="stylesheet" href="/static/css/themes/light.css">
+  <link rel="stylesheet" href="/static/css/themes/dark.css">
+</head>
+<body class="theme-light">
+  <header class="app-header">
+    <a class="brand" href="/pages/index.html"><span class="brand-mark">PMAID</span><span class="brand-name">PM AI Aid™</span></a>
+    <nav class="app-nav" aria-label="Primary navigation">
+      <a href="/pages/index.html">Home</a>
+      <a href="/pages/help.html">Help</a>
+    </nav>
+  </header>
+
+  <main class="container wizard-layout">
+    <h1 id="wizard-title">Discovery Wizard</h1>
+    <p class="muted" id="wizard-mode">Answer six steps. All labels come from configuration.</p>
+    <div class="wizard-steps" id="step-pips"></div>
+    <div class="card">
+      <div class="form-group">
+        <label for="project_name">Project name</label>
+        <input type="text" id="project_name" value="New Project">
+      </div>
+
+      <div class="wizard-panel active" data-step="1" id="panel-1"></div>
+      <div class="wizard-panel" data-step="2" id="panel-2"></div>
+      <div class="wizard-panel" data-step="3" id="panel-3"></div>
+      <div class="wizard-panel" data-step="4" id="panel-4"></div>
+      <div class="wizard-panel" data-step="5" id="panel-5"></div>
+      <div class="wizard-panel" data-step="6" id="panel-6"></div>
+
+      <div class="wizard-nav">
+        <button type="button" class="btn btn-ghost" id="btn-back">Back</button>
+        <button type="button" class="btn" id="btn-next">Next</button>
+      </div>
+      <p class="muted" id="wizard-error"></p>
+    </div>
+  </main>
+
+  <script src="/static/js/core/storage.js"></script>
+  <script src="/static/js/core/config-manager.js"></script>
+  <script src="/static/js/core/state-manager.js"></script>
+  <script src="/static/js/modules/local-ai.js"></script>
+  <script src="/static/js/modules/eu-classifier.js"></script>
+  <script src="/static/js/modules/rule-engine.js"></script>
+  <script src="/static/js/modules/methodology-mapper.js"></script>
+  <script src="/static/js/modules/raci-builder.js"></script>
+  <script src="/static/js/modules/process-builder.js"></script>
+  <script src="/static/js/modules/wizard.js"></script>
+  <script>
+    var uiLabels = null;
+    var configRef = null;
+    var problemAssistRunning = false;
+    var editingExistingProject = false;
+
+    function editModeRequested() {
+      var params = new URLSearchParams(window.location.search);
+      return params.get("mode") === "edit";
+    }
+
+    function prepareWizardDraft() {
+      editingExistingProject = false;
+      if (editModeRequested()) {
+        var active = StateManager.get();
+        if (active) {
+          if (active.discovery_inputs) {
+            Wizard.loadDraft();
+            editingExistingProject = true;
+            return;
+          }
+        }
+      }
+      StateManager.clearActive();
+      Wizard.start("New Project");
+    }
+
+    function restoreSavedAnswers() {
+      if (editingExistingProject === false) {
+        return;
+      }
+      var project = Wizard.draft;
+      var answers = project.discovery_inputs;
+      document.getElementById("project_name").value = project.project_name;
+      var problemText = document.getElementById("problem-assist-text");
+      if (answers.problem_statement) {
+        problemText.value = answers.problem_statement;
+      } else {
+        problemText.placeholder = "This older project has no saved original prompt. Enter it here once and PMAID will save it.";
+      }
+      var options = document.querySelectorAll("[data-field]");
+      var i = 0;
+      while (i < options.length) {
+        var option = options[i];
+        var field = option.getAttribute("data-field");
+        var saved = answers[field];
+        option.checked = false;
+        if (option.type === "checkbox") {
+          if (Array.isArray(saved)) {
+            if (saved.indexOf(option.value) >= 0) {
+              option.checked = true;
+            }
+          }
+        } else {
+          if (saved === option.value) {
+            option.checked = true;
+          }
+        }
+        i = i + 1;
+      }
+      showMethodologyAdvisory(answers.methodology);
+      document.getElementById("wizard-title").textContent = "Edit discovery answers";
+      document.getElementById("wizard-mode").textContent = "Editing " + project.project_name + ". Your saved answers are loaded below.";
+    }
+
+    function makeOptionList(container, items, key, allowMultiple) {
+      var hint = document.createElement("p");
+      hint.className = "muted";
+      if (allowMultiple) {
+        hint.textContent = "Select all that apply.";
+      } else {
+        hint.textContent = "Select one.";
+      }
+      container.appendChild(hint);
+      var ul = document.createElement("ul");
+      ul.className = "check-list";
+      var i = 0;
+      while (i < items.length) {
+        var item = items[i];
+        var li = document.createElement("li");
+        var label = document.createElement("label");
+        var input = document.createElement("input");
+        if (allowMultiple) {
+          input.setAttribute("type", "checkbox");
+        } else {
+          input.setAttribute("type", "radio");
+          input.setAttribute("name", key);
+        }
+        input.value = item.id;
+        input.setAttribute("data-field", key);
+        (function (fieldKey, isMulti) {
+          input.addEventListener("change", function (ev) {
+            var el = ev.target;
+            clearSuggestedLabelsForField(fieldKey);
+            if (isMulti) {
+              Wizard.toggleMulti(fieldKey, el.value, el.checked);
+            } else {
+              Wizard.setField(fieldKey, el.value);
+              if (fieldKey === "methodology") {
+                showMethodologyAdvisory(el.value);
+              }
+            }
+          });
+        })(key, allowMultiple);
+        var span = document.createElement("span");
+        span.innerHTML = "<strong>" + item.label + "</strong>";
+        if (item.description) {
+          span.innerHTML = span.innerHTML + "<br><span class='muted'>" + item.description + "</span>";
+        }
+        if (item.intake_hint) {
+          span.innerHTML = span.innerHTML + "<br><span class='muted'>" + item.intake_hint + "</span>";
+        }
+        label.appendChild(input);
+        label.appendChild(span);
+        li.appendChild(label);
+        ul.appendChild(li);
+        i = i + 1;
+      }
+      container.appendChild(ul);
+    }
+
+    function showMethodologyAdvisory(id) {
+      var box = document.getElementById("method-advisory");
+      if (!box) {
+        return;
+      }
+      var method = MethodologyMapper.getMethodology(id, configRef);
+      if (method && method.advisory) {
+        box.textContent = method.advisory.replace(/\bPRISM\b/g, "PMAID");
+        box.style.display = "block";
+      } else {
+        box.style.display = "none";
+      }
+    }
+
+    function optionMap(items) {
+      var choices = {};
+      var i = 0;
+      while (i < items.length) {
+        choices[items[i].id] = items[i].label;
+        i = i + 1;
+      }
+      return choices;
+    }
+
+    function problemAssistPrompt(problemText) {
+      var allowed = {
+        problem_types: optionMap(configRef.problem_types.problem_types),
+        success_definitions: optionMap(configRef.ui.wizard.success_options),
+        data_state: optionMap(configRef.ui.wizard.data_states),
+        affects_people: optionMap(configRef.ui.wizard.affects_people_options),
+        eu_domain: optionMap(configRef.eu_ai_act.domains),
+        autonomy: optionMap(configRef.eu_ai_act.autonomy_levels)
+      };
+      return "Convert this project problem into PMAID wizard selections. " +
+        "Return one compact JSON object only. Use only the allowed IDs. " +
+        "problem_types and success_definitions must be arrays. " +
+        "Every other field must be one string, never an array. " +
+        "Only include these six keys and only when directly supported by the problem text. " +
+        "Never guess defaults or add other keys. " +
+        "If a human reviews every output before action, autonomy is human_in_loop. " +
+        "Use assisted only when an AI decision can stand unless a human overrides it. " +
+        "Allowed values: " + JSON.stringify(allowed) +
+        "\nFocus on what the system needs to compute or decide, not on the human process being replaced. " +
+        "Automation of a manual step is not a problem type — it is a delivery context. " +
+        "Scoring, ranking, prioritising, estimating likelihood, or predicting risk is predict_outcome. " +
+        "For example, prioritising bank customers for collections is predict_outcome because the system scores or ranks customers. " +
+        "Use automate_process only when the system executes fixed workflow steps and produces no prediction, score, ranking, classification, or recommendation. " +
+        "If both contexts appear, select the computed outcome type and do not select automate_process. " +
+        "affects_people is yes when the system assesses, ranks, prioritises, contacts, or changes treatment of identifiable people. " +
+        "This field describes impact on people, not human oversight. " +
+        "Collections contact prioritisation is other_people_decisions, not credit_scoring, unless the system evaluates creditworthiness, establishes a credit score, or decides access to financial services. " +
+        "Only include success_definitions when the problem explicitly states the business benefit. Do not infer a benefit from automation or delivery timing. " +
+        "Only include autonomy when the future human review, override, or absence of review is explicit. Otherwise omit autonomy." +
+        "\nProblem: " + problemText;
+    }
+
+    function parseProblemSuggestion(content) {
+      var start = content.indexOf("{");
+      var end = content.lastIndexOf("}");
+      if (start < 0) {
+        return null;
+      }
+      if (end < start) {
+        return null;
+      }
+      var source = content.slice(start, end + 1);
+      try {
+        var suggestion = JSON.parse(source);
+        if (suggestion.problem_types === undefined) {
+          if (typeof suggestion.problem_type === "string") {
+            suggestion.problem_types = [suggestion.problem_type];
+          }
+        }
+        if (suggestion.success_definitions === undefined) {
+          if (typeof suggestion.success_definition === "string") {
+            suggestion.success_definitions = [suggestion.success_definition];
+          }
+        }
+        return suggestion;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function problemTextHasAny(problemText, signals) {
+      var text = problemText.toLowerCase();
+      var i = 0;
+      while (i < signals.length) {
+        if (text.indexOf(signals[i]) >= 0) {
+          return true;
+        }
+        i = i + 1;
+      }
+      return false;
+    }
+
+    function hasPredictiveProblemSignal(problemText) {
+      return problemTextHasAny(problemText, [
+        "score",
+        "scoring",
+        "rank",
+        "ranking",
+        "prioritis",
+        "prioritiz",
+        "likelihood",
+        "probability",
+        "propensity",
+        "predict",
+        "forecast",
+        "risk score",
+        "risk prediction"
+      ]);
+    }
+
+    function normalizeSuggestionValue(value, options) {
+      if (typeof value !== "string") {
+        return value;
+      }
+      var target = value.trim().toLowerCase();
+      var i = 0;
+      while (i < options.length) {
+        if (options[i].id.toLowerCase() === target) {
+          return options[i].id;
+        }
+        if (options[i].label.toLowerCase() === target) {
+          return options[i].id;
+        }
+        i = i + 1;
+      }
+      return value;
+    }
+
+    function normalizeSuggestionArray(values, options) {
+      if (Array.isArray(values) === false) {
+        return values;
+      }
+      var normalized = [];
+      var i = 0;
+      while (i < values.length) {
+        normalized.push(normalizeSuggestionValue(values[i], options));
+        i = i + 1;
+      }
+      return normalized;
+    }
+
+    function normalizeSuggestionIds(suggestion) {
+      suggestion.problem_types = normalizeSuggestionArray(
+        suggestion.problem_types,
+        configRef.problem_types.problem_types
+      );
+      suggestion.success_definitions = normalizeSuggestionArray(
+        suggestion.success_definitions,
+        configRef.ui.wizard.success_options
+      );
+      suggestion.data_state = normalizeSuggestionValue(
+        suggestion.data_state,
+        configRef.ui.wizard.data_states
+      );
+      suggestion.affects_people = normalizeSuggestionValue(
+        suggestion.affects_people,
+        configRef.ui.wizard.affects_people_options
+      );
+      suggestion.eu_domain = normalizeSuggestionValue(
+        suggestion.eu_domain,
+        configRef.eu_ai_act.domains
+      );
+      suggestion.autonomy = normalizeSuggestionValue(
+        suggestion.autonomy,
+        configRef.eu_ai_act.autonomy_levels
+      );
+      return suggestion;
+    }
+
+    function correctAutomationContext(problemText, suggestion) {
+      if (Array.isArray(suggestion.problem_types) === false) {
+        return suggestion;
+      }
+      if (suggestion.problem_types.indexOf("automate_process") < 0) {
+        return suggestion;
+      }
+      if (hasPredictiveProblemSignal(problemText) === false) {
+        return suggestion;
+      }
+      var corrected = [];
+      var i = 0;
+      while (i < suggestion.problem_types.length) {
+        if (suggestion.problem_types[i] !== "automate_process") {
+          corrected.push(suggestion.problem_types[i]);
+        }
+        i = i + 1;
+      }
+      if (corrected.indexOf("predict_outcome") < 0) {
+        corrected.push("predict_outcome");
+      }
+      suggestion.problem_types = corrected;
+      return suggestion;
+    }
+
+    function isCollectionsContactPrioritisation(problemText) {
+      var collections = ["collection", "overdue", "arrears", "delinquent"];
+      var contact = ["who to call", "contact", "call queue", "outreach"];
+      var priority = ["prioritis", "prioritiz", "rank", "score", "likelihood"];
+      if (problemTextHasAny(problemText, collections) === false) {
+        return false;
+      }
+      if (problemTextHasAny(problemText, contact) === false) {
+        return false;
+      }
+      if (problemTextHasAny(problemText, priority) === false) {
+        return false;
+      }
+      return true;
+    }
+
+    function correctPeopleDecisionContext(problemText, suggestion) {
+      if (isCollectionsContactPrioritisation(problemText) === false) {
+        return suggestion;
+      }
+      suggestion.affects_people = "yes";
+      var creditAccess = [
+        "creditworthiness",
+        "credit score",
+        "loan approval",
+        "approve a loan",
+        "deny a loan",
+        "grant credit",
+        "credit limit",
+        "access to credit",
+        "access to financial services"
+      ];
+      if (problemTextHasAny(problemText, creditAccess)) {
+        suggestion.eu_domain = "credit_scoring";
+        return suggestion;
+      }
+      suggestion.eu_domain = "other_people_decisions";
+      return suggestion;
+    }
+
+    function correctSuccessEvidence(problemText, suggestion) {
+      var success = [];
+      if (problemTextHasAny(problemText, ["reduce cost", "lower cost", "cost saving", "save money"])) {
+        success.push("cost");
+      }
+      if (problemTextHasAny(problemText, ["improve accuracy", "more accurate", "accuracy"])) {
+        success.push("accuracy");
+      }
+      if (problemTextHasAny(problemText, ["increase speed", "faster", "reduce time", "time saving", "throughput"])) {
+        success.push("speed");
+      }
+      if (problemTextHasAny(problemText, ["new capability", "cannot do today"])) {
+        success.push("capability");
+      }
+      if (problemTextHasAny(problemText, ["reduce risk", "risk reduction"])) {
+        success.push("risk_reduction");
+      }
+      if (problemTextHasAny(problemText, ["meet compliance", "compliance obligation", "regulatory obligation"])) {
+        success.push("compliance");
+      }
+      suggestion.success_definitions = success;
+      return suggestion;
+    }
+
+    function correctAutonomyEvidence(problemText, suggestion) {
+      var humanReview = [
+        "human must review",
+        "agent must review",
+        "review every",
+        "human makes the final",
+        "agent makes the final",
+        "agents decide what action",
+        "requires human approval",
+        "before any action",
+        "ai only advises"
+      ];
+      if (problemTextHasAny(problemText, humanReview)) {
+        suggestion.autonomy = "human_in_loop";
+        return suggestion;
+      }
+      var fullyAutomated = [
+        "no human review",
+        "without human review",
+        "fully automated",
+        "ai makes the final decision",
+        "automatically contacts",
+        "automatically rejects",
+        "automatically approves"
+      ];
+      if (problemTextHasAny(problemText, fullyAutomated)) {
+        suggestion.autonomy = "fully_automated";
+        return suggestion;
+      }
+      var assisted = [
+        "human can override",
+        "agent can override",
+        "ai recommends",
+        "decision support",
+        "human remains in control"
+      ];
+      if (problemTextHasAny(problemText, assisted)) {
+        suggestion.autonomy = "assisted";
+        return suggestion;
+      }
+      delete suggestion.autonomy;
+      return suggestion;
+    }
+
+    function correctCleanDataEvidence(problemText, suggestion) {
+      if (suggestion.data_state !== "clean_labelled") {
+        return suggestion;
+      }
+      var cleanLabelled = [
+        "clean and labelled",
+        "clean and labeled",
+        "clean labelled",
+        "clean labeled",
+        "labelled data",
+        "labeled data"
+      ];
+      if (problemTextHasAny(problemText, cleanLabelled)) {
+        return suggestion;
+      }
+      delete suggestion.data_state;
+      return suggestion;
+    }
+
+    function correctProblemSuggestion(problemText, suggestion) {
+      suggestion = normalizeSuggestionIds(suggestion);
+      suggestion = correctAutomationContext(problemText, suggestion);
+      suggestion = correctPeopleDecisionContext(problemText, suggestion);
+      suggestion = correctSuccessEvidence(problemText, suggestion);
+      suggestion = correctAutonomyEvidence(problemText, suggestion);
+      suggestion = correctCleanDataEvidence(problemText, suggestion);
+      return suggestion;
+    }
+
+    function clearSuggestedLabels() {
+      var labels = document.querySelectorAll(".ai-suggestion-block");
+      var i = 0;
+      while (i < labels.length) {
+        labels[i].remove();
+        i = i + 1;
+      }
+    }
+
+    function clearSuggestedLabelsForField(fieldKey) {
+      var inputs = document.querySelectorAll("input[data-field='" + fieldKey + "']");
+      var i = 0;
+      while (i < inputs.length) {
+        var labels = inputs[i].parentNode.querySelectorAll(".ai-suggestion-block");
+        var j = 0;
+        while (j < labels.length) {
+          labels[j].remove();
+          j = j + 1;
+        }
+        i = i + 1;
+      }
+    }
+
+    function markSuggested(input) {
+      var block = document.createElement("span");
+      block.className = "ai-suggestion-block";
+      var label = document.createElement("span");
+      label.className = "ai-suggested-label";
+      label.textContent = "AI suggested — confirm or edit";
+      var reminder = document.createElement("span");
+      reminder.className = "ai-suggestion-reminder muted";
+      reminder.textContent = "AI suggestions are a starting point. Read all options before proceeding.";
+      block.appendChild(label);
+      block.appendChild(reminder);
+      input.parentNode.appendChild(block);
+    }
+
+    function applyMultipleSuggestion(fieldKey, values) {
+      if (Array.isArray(values) === false) {
+        return false;
+      }
+      var inputs = document.querySelectorAll("input[data-field='" + fieldKey + "']");
+      var selected = [];
+      var i = 0;
+      while (i < inputs.length) {
+        if (values.indexOf(inputs[i].value) >= 0) {
+          selected.push(inputs[i].value);
+        }
+        i = i + 1;
+      }
+      if (selected.length === 0) {
+        return false;
+      }
+      i = 0;
+      while (i < inputs.length) {
+        inputs[i].checked = false;
+        if (selected.indexOf(inputs[i].value) >= 0) {
+          inputs[i].checked = true;
+          markSuggested(inputs[i]);
+        }
+        i = i + 1;
+      }
+      Wizard.setField(fieldKey, selected);
+      return true;
+    }
+
+    function applySingleSuggestion(fieldKey, value) {
+      var singleValue = value;
+      if (Array.isArray(singleValue)) {
+        if (singleValue.length !== 1) {
+          return false;
+        }
+        singleValue = singleValue[0];
+      }
+      if (typeof singleValue !== "string") {
+        return false;
+      }
+      var inputs = document.querySelectorAll("input[data-field='" + fieldKey + "']");
+      var selected = null;
+      var i = 0;
+      while (i < inputs.length) {
+        if (inputs[i].value === singleValue) {
+          selected = inputs[i];
+        }
+        i = i + 1;
+      }
+      if (selected === null) {
+        return false;
+      }
+      i = 0;
+      while (i < inputs.length) {
+        inputs[i].checked = false;
+        i = i + 1;
+      }
+      selected.checked = true;
+      markSuggested(selected);
+      Wizard.setField(fieldKey, singleValue);
+      return true;
+    }
+
+    function applyProblemSuggestion(suggestion) {
+      clearSuggestedLabels();
+      applyMultipleSuggestion("problem_types", suggestion.problem_types);
+      applyMultipleSuggestion("success_definitions", suggestion.success_definitions);
+      applySingleSuggestion("data_state", suggestion.data_state);
+      applySingleSuggestion("affects_people", suggestion.affects_people);
+      applySingleSuggestion("eu_domain", suggestion.eu_domain);
+      applySingleSuggestion("autonomy", suggestion.autonomy);
+    }
+
+    function runProblemAssist() {
+      var feature = document.getElementById("problem-assist");
+      var textarea = document.getElementById("problem-assist-text");
+      var button = document.getElementById("problem-assist-submit");
+      var hint = document.getElementById("problem-assist-hint");
+      if (problemAssistRunning === true) {
+        return;
+      }
+      var problemText = textarea.value.trim();
+      if (problemText.length === 0) {
+        return;
+      }
+      Wizard.setField("problem_statement", problemText);
+      problemAssistRunning = true;
+      button.disabled = true;
+      button.textContent = "Suggesting…";
+      hint.textContent = "Local AI is reviewing the problem.";
+      LocalAI.complete(problemAssistPrompt(problemText)).then(function (content) {
+        if (content === null) {
+          feature.hidden = true;
+          return;
+        }
+        var suggestion = parseProblemSuggestion(content);
+        if (suggestion === null) {
+          feature.hidden = true;
+          return;
+        }
+        suggestion = correctProblemSuggestion(problemText, suggestion);
+        applyProblemSuggestion(suggestion);
+        hint.textContent = "Suggestions applied below — confirm or edit them.";
+      }).catch(function () {
+        feature.hidden = true;
+      }).finally(function () {
+        problemAssistRunning = false;
+        button.disabled = false;
+        button.textContent = "Suggest answers";
+      });
+    }
+
+    function renderPips() {
+      var labels = [
+        uiLabels.wizard_step_1,
+        uiLabels.wizard_step_2,
+        uiLabels.wizard_step_3,
+        uiLabels.wizard_step_4,
+        uiLabels.wizard_step_5,
+        uiLabels.wizard_step_6
+      ];
+      var el = document.getElementById("step-pips");
+      el.innerHTML = "";
+      var i = 0;
+      while (i < labels.length) {
+        var pip = document.createElement("div");
+        pip.className = "wizard-step-pip";
+        if (i + 1 === Wizard.step) {
+          pip.className = "wizard-step-pip active";
+        } else {
+          if (i + 1 < Wizard.step) {
+            pip.className = "wizard-step-pip done";
+          }
+        }
+        pip.textContent = (i + 1) + ". " + labels[i];
+        el.appendChild(pip);
+        i = i + 1;
+      }
+    }
+
+    function showStep() {
+      var panels = document.querySelectorAll(".wizard-panel");
+      var i = 0;
+      while (i < panels.length) {
+        panels[i].classList.remove("active");
+        if (parseInt(panels[i].getAttribute("data-step"), 10) === Wizard.step) {
+          panels[i].classList.add("active");
+        }
+        i = i + 1;
+      }
+      renderPips();
+      var next = document.getElementById("btn-next");
+      if (Wizard.step === Wizard.totalSteps) {
+        if (editingExistingProject) {
+          next.textContent = "Update verdict";
+        } else {
+          next.textContent = "See verdict";
+        }
+      } else {
+        next.textContent = uiLabels.next || "Next";
+      }
+    }
+
+    function buildPanels(config) {
+      var p1 = document.getElementById("panel-1");
+      p1.innerHTML = "<h2>" + uiLabels.wizard_step_1 + "</h2>";
+      var assist = document.createElement("div");
+      assist.id = "problem-assist";
+      assist.className = "form-group ai-assist";
+      assist.hidden = true;
+      var assistLabel = document.createElement("label");
+      assistLabel.setAttribute("for", "problem-assist-text");
+      assistLabel.textContent = "Describe the problem in plain language";
+      var assistText = document.createElement("textarea");
+      assistText.id = "problem-assist-text";
+      assistText.placeholder = "Describe the outcome, users, available data, and constraints.";
+      var assistButton = document.createElement("button");
+      assistButton.type = "button";
+      assistButton.id = "problem-assist-submit";
+      assistButton.className = "btn";
+      assistButton.style.marginTop = "0.75rem";
+      assistButton.textContent = "Suggest answers";
+      var assistHint = document.createElement("p");
+      assistHint.id = "problem-assist-hint";
+      assistHint.className = "muted";
+      assistHint.textContent = "Choose Suggest answers or leave this field to pre-fill the wizard.";
+      assist.appendChild(assistLabel);
+      assist.appendChild(assistText);
+      assist.appendChild(assistButton);
+      assist.appendChild(assistHint);
+      p1.appendChild(assist);
+      makeOptionList(p1, config.problem_types.problem_types, "problem_types", true);
+
+      var p2 = document.getElementById("panel-2");
+      p2.innerHTML = "<h2>" + uiLabels.wizard_step_2 + "</h2>";
+      makeOptionList(p2, config.ui.wizard.success_options, "success_definitions", true);
+
+      var p3 = document.getElementById("panel-3");
+      p3.innerHTML = "<h2>" + uiLabels.wizard_step_3 + "</h2>";
+      makeOptionList(p3, config.ui.wizard.data_states, "data_state", false);
+      var pre = document.createElement("div");
+      pre.innerHTML = "<h3>Pre-trained model</h3>";
+      p3.appendChild(pre);
+      makeOptionList(pre, config.ui.wizard.pretrained_options, "pretrained_available", false);
+      var rc = document.createElement("div");
+      rc.innerHTML = "<h3>If automating a process — rule complexity</h3>";
+      p3.appendChild(rc);
+      makeOptionList(rc, config.ui.wizard.rule_complexity_options, "rule_complexity", false);
+
+      var p4 = document.getElementById("panel-4");
+      p4.innerHTML = "<h2>" + uiLabels.wizard_step_4 + "</h2>";
+      var blocks = [
+        { title: "AI maturity", key: "ai_maturity", opts: config.ui.wizard.maturity_options },
+        { title: "Team", key: "team_exists", opts: config.ui.wizard.team_options },
+        { title: "Infrastructure", key: "infra", opts: config.ui.wizard.infra_options },
+        { title: "Budget shape", key: "budget_shape", opts: config.ui.wizard.budget_options },
+        { title: "Timeline horizon", key: "timeline_horizon", opts: config.ui.wizard.timeline_options }
+      ];
+      var b = 0;
+      while (b < blocks.length) {
+        var wrap = document.createElement("div");
+        wrap.innerHTML = "<h3>" + blocks[b].title + "</h3>";
+        p4.appendChild(wrap);
+        makeOptionList(wrap, blocks[b].opts, blocks[b].key, false);
+        b = b + 1;
+      }
+
+      var p5 = document.getElementById("panel-5");
+      p5.innerHTML = "<h2>" + uiLabels.wizard_step_5 + "</h2>";
+      var aff = document.createElement("div");
+      aff.innerHTML = "<h3>Does this system affect decisions about people?</h3>" +
+        "<p class='muted'>This means the AI changes how identifiable people are assessed, prioritised, contacted, or treated. Human review is captured under Autonomy.</p>";
+      p5.appendChild(aff);
+      makeOptionList(aff, config.ui.wizard.affects_people_options, "affects_people", false);
+      var dom = document.createElement("div");
+      dom.innerHTML = "<h3>Domain</h3>";
+      p5.appendChild(dom);
+      makeOptionList(dom, config.eu_ai_act.domains, "eu_domain", false);
+      var aut = document.createElement("div");
+      aut.innerHTML = "<h3>Autonomy level</h3>";
+      p5.appendChild(aut);
+      makeOptionList(aut, config.eu_ai_act.autonomy_levels, "autonomy", false);
+
+      var p6 = document.getElementById("panel-6");
+      p6.innerHTML = "<h2>" + uiLabels.wizard_step_6 + "</h2>";
+      makeOptionList(p6, config.methodologies.methodologies, "methodology", false);
+      var adv = document.createElement("div");
+      adv.id = "method-advisory";
+      adv.className = "advisory";
+      adv.style.display = "none";
+      p6.appendChild(adv);
+    }
+
+    PrismStorage.applyTheme();
+    Promise.all([
+      ConfigManager.load(),
+      StateManager.ready()
+    ]).then(function (parts) {
+      var config = parts[0];
+      configRef = config;
+      uiLabels = config.ui.labels;
+      prepareWizardDraft();
+      buildPanels(config);
+      restoreSavedAnswers();
+      showStep();
+
+      LocalAI.check(config).then(function (available) {
+        var feature = document.getElementById("problem-assist");
+        if (available === false) {
+          feature.hidden = true;
+          return;
+        }
+        feature.hidden = false;
+        document.getElementById("problem-assist-text").addEventListener("blur", runProblemAssist);
+        document.getElementById("problem-assist-submit").addEventListener("click", runProblemAssist);
+      });
+
+      document.getElementById("project_name").addEventListener("input", function (ev) {
+        Wizard.setField("project_name", ev.target.value);
+      });
+
+      document.getElementById("problem-assist-text").addEventListener("input", function (ev) {
+        Wizard.setField("problem_statement", ev.target.value);
+      });
+
+      document.getElementById("btn-back").addEventListener("click", function () {
+        Wizard.back();
+        showStep();
+      });
+
+      document.getElementById("btn-next").addEventListener("click", function () {
+        document.getElementById("wizard-error").textContent = "";
+        if (Wizard.step < Wizard.totalSteps) {
+          if (!Wizard.canAdvance()) {
+            document.getElementById("wizard-error").textContent = "Complete this step before continuing.";
+            return;
+          }
+          Wizard.next();
+          showStep();
+          return;
+        }
+        if (!Wizard.canAdvance()) {
+          document.getElementById("wizard-error").textContent = "Complete this step before continuing.";
+          return;
+        }
+        Wizard.finish();
+        StateManager.flush().then(function () {
+          window.location.href = "/pages/verdict.html";
+        }).catch(function () {
+          document.getElementById("wizard-error").textContent = "Could not save the project. Check that PMAID is running and try again.";
+        });
+      });
+    });
+  </script>
+  <script src="/static/js/core/footer.js?v=20260809-2"></script>
+</body>
+</html>

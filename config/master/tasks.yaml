@@ -1,0 +1,226 @@
+tasks:
+  - task_id: t_problem_statement
+    name: Write problem statement
+    description: Capture the business problem without solution bias
+    phase: problem_framing
+    complexity: Low
+  - task_id: t_success_metrics
+    name: Define success metrics
+    description: Agree what good looks like with the sponsor
+    phase: problem_framing
+    complexity: Medium
+  - task_id: t_ai_suitability
+    name: AI suitability assessment
+    description: Decide if AI is appropriate versus rules or software
+    phase: problem_framing
+    complexity: Medium
+  - task_id: t_eu_screen
+    name: EU AI Act screening
+    description: Classify tier and list mandatory obligations
+    phase: problem_framing
+    complexity: Medium
+  - task_id: t_stakeholder_map
+    name: Stakeholder map
+    description: Identify decision owners, SMEs, and impacted users
+    phase: problem_framing
+    complexity: Low
+  - task_id: t_data_inventory
+    name: Data inventory
+    description: Catalogue sources, owners, volume, and freshness
+    phase: data_discovery
+    complexity: Medium
+  - task_id: t_quality_audit
+    name: Data quality audit
+    description: Measure completeness, consistency, and known bias
+    phase: data_discovery
+    complexity: High
+  - task_id: t_privacy_check
+    name: Privacy and governance check
+    description: Confirm lawful basis and retention constraints
+    phase: data_discovery
+    complexity: High
+  - task_id: t_labelling_estimate
+    name: Labelling effort estimate
+    description: Estimate labels needed and who will create them
+    phase: data_discovery
+    complexity: Medium
+  - task_id: t_gap_analysis
+    name: Data gap analysis
+    description: List missing features and acquisition options
+    phase: data_discovery
+    complexity: Medium
+  - task_id: t_model_options
+    name: Model option analysis
+    description: Compare candidate approaches with trade-offs
+    phase: solution_architecture
+    complexity: Medium
+  - task_id: t_pipeline_design
+    name: Pipeline architecture
+    description: Design training and inference data flows
+    phase: solution_architecture
+    complexity: High
+  - task_id: t_monitoring_design
+    name: Monitoring design
+    description: Define metrics, alerts, and dashboards for live model
+    phase: solution_architecture
+    complexity: Medium
+  - task_id: t_ethics_review
+    name: Ethics-by-design review
+    description: Review harm scenarios and mitigation design
+    phase: solution_architecture
+    complexity: Medium
+  - task_id: t_integration_map
+    name: Integration map
+    description: Map systems, APIs, and human handoffs
+    phase: solution_architecture
+    complexity: Medium
+  - task_id: t_ingestion
+    name: Data ingestion
+    description: Build reliable source connectors
+    phase: data_engineering
+    complexity: High
+  - task_id: t_cleaning
+    name: Cleaning and normalisation
+    description: Fix schema, nulls, and unit issues
+    phase: data_engineering
+    complexity: High
+  - task_id: t_features
+    name: Feature engineering
+    description: Build and document features used by the model
+    phase: data_engineering
+    complexity: High
+  - task_id: t_labelling
+    name: Labelling workflow
+    description: Produce and quality-check labels if supervised
+    phase: data_engineering
+    complexity: Very High
+  - task_id: t_splits
+    name: Train test validation splits
+    description: Create leakage-safe splits with time awareness if needed
+    phase: data_engineering
+    complexity: Medium
+  - task_id: t_data_versioning
+    name: Data versioning
+    description: Snapshot datasets used for each experiment
+    phase: data_engineering
+    complexity: Medium
+  - task_id: t_baseline
+    name: Baseline model
+    description: Establish a simple non-hero baseline metric
+    phase: model_development
+    complexity: Medium
+  - task_id: t_experiment_design
+    name: Experiment design
+    description: Define hypotheses and comparison protocol
+    phase: model_development
+    complexity: Medium
+  - task_id: t_training_cycles
+    name: Training cycles
+    description: Run iterative training and evaluation loops
+    phase: model_development
+    complexity: Very High
+  - task_id: t_tuning
+    name: Hyperparameter tuning
+    description: Search configuration space with budget limits
+    phase: model_development
+    complexity: High
+  - task_id: t_experiment_tracking
+    name: Experiment tracking
+    description: Log metrics, data versions, and code versions
+    phase: model_development
+    complexity: Medium
+  - task_id: t_model_selection
+    name: Model selection
+    description: Choose champion model against agreed criteria
+    phase: model_development
+    complexity: High
+  - task_id: t_perf_test
+    name: Performance testing
+    description: Evaluate on held-out and production-like data
+    phase: validation_testing
+    complexity: High
+  - task_id: t_bias_test
+    name: Bias and fairness testing
+    description: Measure subgroup performance and document findings
+    phase: validation_testing
+    complexity: High
+  - task_id: t_edge_cases
+    name: Edge case testing
+    description: Probe rare and high-impact scenarios
+    phase: validation_testing
+    complexity: Medium
+  - task_id: t_adversarial
+    name: Adversarial and robustness tests
+    description: Test for gaming, noise, and distribution shift
+    phase: validation_testing
+    complexity: High
+  - task_id: t_integration_test
+    name: Integration testing
+    description: Verify end-to-end system behaviour
+    phase: validation_testing
+    complexity: Medium
+  - task_id: t_uat
+    name: User acceptance testing
+    description: Confirm business users accept outputs
+    phase: validation_testing
+    complexity: Medium
+  - task_id: t_regulatory_check
+    name: Regulatory compliance check
+    description: Confirm EU and internal obligations met
+    phase: validation_testing
+    complexity: High
+  - task_id: t_shadow
+    name: Shadow deployment
+    description: Run model offline against live traffic
+    phase: deployment
+    complexity: High
+  - task_id: t_canary
+    name: Canary or A/B rollout
+    description: Expose model to a limited traffic slice
+    phase: deployment
+    complexity: High
+  - task_id: t_monitoring_on
+    name: Activate monitoring
+    description: Turn on drift, latency, and quality alerts
+    phase: deployment
+    complexity: Medium
+  - task_id: t_rollback
+    name: Rollback definition
+    description: Document trigger and procedure to revert
+    phase: deployment
+    complexity: Medium
+  - task_id: t_runbook
+    name: Operations runbook
+    description: Write on-call steps for model incidents
+    phase: deployment
+    complexity: Medium
+  - task_id: t_drift_monitor
+    name: Drift monitoring
+    description: Watch data and performance drift continuously
+    phase: hypercare
+    complexity: High
+  - task_id: t_retrain_triggers
+    name: Retraining triggers
+    description: Define when and how models are refreshed
+    phase: hypercare
+    complexity: High
+  - task_id: t_feedback_loop
+    name: Feedback loop
+    description: Capture user corrections into future training
+    phase: hypercare
+    complexity: Medium
+  - task_id: t_incident_response
+    name: Incident response
+    description: Practice model-specific incident playbooks
+    phase: hypercare
+    complexity: Medium
+  - task_id: t_model_versioning
+    name: Model versioning
+    description: Track live and previous model artefacts
+    phase: hypercare
+    complexity: Medium
+  - task_id: t_bau_handover
+    name: BAU handover
+    description: Transfer ownership to operational team
+    phase: hypercare
+    complexity: Medium

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PMAID — Configuration Library</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css?v=20260810-3">
+  <link rel="stylesheet" href="/static/css/themes/light.css">
+  <link rel="stylesheet" href="/static/css/themes/dark.css">
+</head>
+<body class="theme-light">
+  <header class="app-header">
+    <a class="brand" href="/pages/index.html"><span class="brand-mark">PMAID</span><span class="brand-name">PM AI Aid™</span></a>
+    <nav class="app-nav" aria-label="Primary navigation">
+      <a href="/pages/config.html">Config</a>
+      <a href="/pages/help.html">Help</a>
+    </nav>
+  </header>
+
+  <main class="container config-library-page">
+    <div class="help-hero">
+      <div>
+        <p class="home-card-kicker">ORGANISATION CONFIGURATION</p>
+        <h1 id="library-title">Configuration Library</h1>
+        <p class="muted" id="library-description"></p>
+      </div>
+      <div class="list-actions">
+        <a class="btn btn-ghost" href="/pages/config.html">Back to Config</a>
+      </div>
+    </div>
+
+    <div class="config-library-layout">
+      <aside class="card config-library-sidebar">
+        <div class="form-group">
+          <label for="library-type">Library</label>
+          <select id="library-type">
+            <option value="tasks">Tasks</option>
+            <option value="roles">Roles</option>
+            <option value="risks">Risks</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="entry-select">Entry</label>
+          <select id="entry-select" size="12"></select>
+        </div>
+        <button type="button" class="btn btn-block" id="new-entry">Add new entry</button>
+        <button type="button" class="btn btn-ghost btn-block" id="restore-library">Restore master library</button>
+      </aside>
+
+      <section class="card">
+        <form id="entry-form">
+          <div id="entry-fields"></div>
+          <p class="muted">IDs become permanent after creation because phases and rules may refer to them.</p>
+          <div class="list-actions">
+            <button type="submit" class="btn btn-success" id="save-entry">Save entry</button>
+            <button type="button" class="btn btn-danger" id="delete-entry">Delete entry</button>
+            <button type="button" class="btn btn-ghost" id="cancel-entry">Cancel</button>
+          </div>
+          <p id="editor-status" class="muted" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script src="/static/js/core/storage.js"></script>
+  <script src="/static/js/core/config-manager.js?v=20260810-2"></script>
+  <script src="/static/js/modules/config-library-editor.js?v=20260810-1"></script>
+  <script src="/static/js/core/footer.js?v=20260809-2"></script>
+</body>
+</html>

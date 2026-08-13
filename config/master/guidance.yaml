@@ -1,0 +1,107 @@
+guidance:
+  phases:
+    problem_framing:
+      title: Framing guidance
+      body: Write the problem without naming a model. AI suitability and EU tier are outputs of this phase, not assumptions.
+      tips:
+        - Prefer placeholder names for clients and systems
+        - Capture who decides go or no-go
+    data_discovery:
+      title: Data discovery guidance
+      body: Data state is the strongest timeline driver. Inventory before architecture.
+      tips:
+        - Name data owners early
+        - Estimate labelling as its own workstream
+    solution_architecture:
+      title: Architecture guidance
+      body: Compare options against data reality. Include monitoring and human oversight in the design, not as a postscript.
+      tips:
+        - Document rollback before go-live design
+    data_engineering:
+      title: Data engineering guidance
+      body: Feature definitions often change after the first model cycles. Plan for partial re-runs.
+      tips:
+        - Version every training snapshot
+        - Guard against target leakage
+    model_development:
+      title: Model development guidance
+      body: Expect 5 to 20 training cycles. Done means the model beats an agreed baseline on held-out data, not that one experiment finished.
+      tips:
+        - Log every experiment
+        - Freeze the evaluation protocol before comparing models
+        - Iterative nature is normal — schedule capacity for rework
+    validation_testing:
+      title: Validation guidance
+      body: AI testing includes bias, edge cases, and silent failure modes that unit tests never catch.
+      tips:
+        - Test subgroups, not only averages
+        - Include regulatory evidence in the pack
+    deployment:
+      title: Deployment guidance
+      body: Prefer shadow and canary before full traffic. Monitoring activation is part of go-live, not a follow-up ticket.
+      tips:
+        - Rehearse rollback
+    hypercare:
+      title: Hypercare guidance
+      body: Hypercare is ongoing. Models drift. Plan retraining budget and ownership before go-live.
+      tips:
+        - Name the BAU owner
+        - Define drift alerts and retrain triggers in writing
+  tasks:
+    t_baseline:
+      body: A weak baseline still counts. Random, majority class, or simple rules show whether ML is earning its keep.
+    t_training_cycles:
+      body: Treat each cycle as a hypothesis test. Stop when budget or diminishing returns say so.
+    t_drift_monitor:
+      body: Monitor both input distributions and outcome quality. One without the other is a blind spot.
+  phase_questions:
+    model_development:
+      - What is the baseline metric we are trying to beat?
+      - Who owns the decision on what accurate enough means for this domain?
+      - What GPU or compute budget is allocated for training runs?
+      - How many labelled examples does the ML engineer estimate are needed?
+      - Is there a retraining budget post-launch?
+    hypercare:
+      - Who is the BAU owner for drift and incidents?
+      - What drift threshold triggers investigation?
+  non_ai_plans:
+    rule_lookup_not_ai:
+      title: Use standard search
+      outcome: Let users find existing information accurately without training a predictive model.
+      steps:
+        - Confirm which records users need, which fields they search, and who may see each result
+        - Decide whether exact database search is enough or a search index is needed
+        - Build the query, filters, permissions, and result screen
+        - Test common searches, missing records, access controls, and response time
+        - Release to a small user group, measure failed searches, and improve the index or data
+    rule_automate_low_not_ai:
+      title: Automate with workflow rules
+      outcome: Remove repetitive manual work with transparent rules and an exception path.
+      steps:
+        - Map the current steps, decision rules, hand-offs, and exceptions
+        - Agree which rules may run automatically and which cases require a person
+        - Configure the workflow, business rules, notifications, and audit trail
+        - Test normal cases, exceptions, permissions, rollback, and reporting
+        - Pilot with one team, measure time saved and errors, then expand if the result is sound
+    rule_no_data_not_ai:
+      title: Prepare the evidence first
+      outcome: Build a usable evidence base before choosing whether AI is appropriate.
+      steps:
+        - Define the decision or output and the measurable result that matters
+        - Inventory possible data sources, owners, permissions, and retention limits
+        - Capture representative examples and record the real outcomes consistently
+        - Check coverage, quality, bias, and whether the data exists before the decision point
+        - Return to Discovery when enough evidence exists to compare rules, standard software, and AI
+    default:
+      title: Use a simpler non-AI solution
+      outcome: Solve the stated business need with the least complex reliable approach.
+      steps:
+        - Restate the required outcome and the users affected
+        - Compare business rules, workflow software, database queries, reporting, and process redesign
+        - Select the simplest option that meets the controls and success measure
+        - Build and test a small pilot including exceptions and human ownership
+        - Measure the result before adding more complexity
+  general:
+    waterfall_ai_warning: Waterfall assumes stable requirements. Model work discovers constraints late. Prefer hybrid gates around iterative model cycles.
+    local_ai_label: Generated with local AI — review before use
+    reasoning_prefix: "Because you answered"

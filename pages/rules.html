@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PMAID — Decision Rule Editor</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css?v=20260809-2">
+  <link rel="stylesheet" href="/static/css/rules.css?v=20260810-1">
+  <link rel="stylesheet" href="/static/css/themes/light.css">
+  <link rel="stylesheet" href="/static/css/themes/dark.css">
+</head>
+<body class="theme-light">
+  <header class="app-header">
+    <a class="brand" href="/pages/index.html"><span class="brand-mark">PMAID</span><span class="brand-name">PM AI Aid™</span></a>
+    <nav class="app-nav" aria-label="Primary navigation">
+      <a href="/pages/config.html">Config</a>
+      <a href="/pages/index.html">Home</a>
+      <a href="/pages/help.html">Help</a>
+    </nav>
+  </header>
+
+  <main class="container-wide rule-editor-page">
+    <div class="rule-editor-intro">
+      <div>
+        <p class="rule-editor-kicker">ADMIN TOOL</p>
+        <h1>Decision Rule Editor</h1>
+        <p class="muted">Change how Discovery answers are turned into a recommendation. Every control below is validated before it is saved.</p>
+      </div>
+      <a class="btn btn-ghost" href="/pages/config.html">Back to Config</a>
+    </div>
+
+    <div class="rule-notice" role="note">
+      <strong>Saved in this browser only.</strong>
+      New Discovery verdicts use these changes. To update an existing project, open its verdict, choose <strong>Modify</strong>, then submit Discovery again.
+    </div>
+
+    <p id="rule-status" class="rule-status muted" role="status" aria-live="polite">Loading decision rules…</p>
+
+    <form id="rule-form" hidden>
+      <section class="card rule-selector-card" aria-labelledby="choose-rule-heading">
+        <div>
+          <h2 id="choose-rule-heading">1. Choose a rule</h2>
+          <p class="muted">Each rule describes when it applies and what PMAID should recommend.</p>
+        </div>
+        <div class="form-group">
+          <label for="rule-select">Rule to edit</label>
+          <select id="rule-select"></select>
+          <p class="field-help">The permanent rule ID is <code id="rule-id-display"></code>.</p>
+        </div>
+      </section>
+
+      <div class="rule-editor-grid">
+        <section class="card" aria-labelledby="result-heading">
+          <h2 id="result-heading">2. Recommendation</h2>
+          <p class="muted">What PMAID should return when this rule matches.</p>
+
+          <div class="form-group">
+            <label for="rule-ai-type">Recommended approach</label>
+            <select id="rule-ai-type"></select>
+          </div>
+
+          <div class="rule-two-fields">
+            <div class="form-group">
+              <label for="rule-confidence">Match confidence</label>
+              <input type="number" id="rule-confidence" min="0" max="100" step="1">
+              <p class="field-help">How strongly this rule matches, not model accuracy. Below 50 asks for more information.</p>
+            </div>
+            <div class="form-group">
+              <label for="rule-complexity">Delivery complexity</label>
+              <select id="rule-complexity">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="rule-suggested-non-ai">Suggested standard-software alternative</label>
+            <input type="text" id="rule-suggested-non-ai">
+            <p class="field-help">Leave blank when no non-AI alternative is needed.</p>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="order-heading">
+          <h2 id="order-heading">3. Rule order</h2>
+          <p class="muted">PMAID checks higher numbers first. A specific safety rule should normally be above a general recommendation rule.</p>
+          <div class="form-group">
+            <label for="rule-priority">Priority</label>
+            <input type="number" id="rule-priority" min="0" max="1000" step="1">
+          </div>
+          <div class="rule-plain-example">
+            <strong>Example</strong>
+            <p>A prohibited-use rule at priority 100 is checked before a general prediction rule at priority 70.</p>
+          </div>
+        </section>
+
+        <section class="card rule-full" aria-labelledby="conditions-heading">
+          <h2 id="conditions-heading">4. When this rule applies</h2>
+          <p class="muted">All active rows must match. Within one row, selecting several values means any one of those values may match.</p>
+          <div id="conditions-editor" class="rule-condition-grid"></div>
+        </section>
+
+        <section class="card" aria-labelledby="phases-heading">
+          <h2 id="phases-heading">5. Plan phases</h2>
+          <p class="muted">Choose the phases to recommend when this rule matches.</p>
+          <div id="phases-options" class="rule-choice-grid"></div>
+        </section>
+
+        <section class="card" aria-labelledby="roles-heading">
+          <h2 id="roles-heading">6. Recommended roles</h2>
+          <p class="muted">Choose the people needed to deliver or govern the work.</p>
+          <div id="roles-options" class="rule-choice-grid"></div>
+        </section>
+
+        <section class="card rule-full" aria-labelledby="language-heading">
+          <h2 id="language-heading">7. What the PM sees</h2>
+          <p class="muted">Use short, plain-English sentences. Blank rows are ignored.</p>
+          <div class="rule-language-grid">
+            <div>
+              <h3>Why PMAID recommends this</h3>
+              <div id="reasons-list" class="rule-text-list"></div>
+              <button type="button" class="btn btn-ghost" id="add-reason">Add reason</button>
+            </div>
+            <div>
+              <h3>What to check before proceeding</h3>
+              <div id="warnings-list" class="rule-text-list"></div>
+              <button type="button" class="btn btn-ghost" id="add-warning">Add warning</button>
+            </div>
+            <div>
+              <h3>Recommended next steps</h3>
+              <div id="next-steps-list" class="rule-text-list"></div>
+              <button type="button" class="btn btn-ghost" id="add-next-step">Add next step</button>
+            </div>
+            <div>
+              <h3>Questions for the PM</h3>
+              <div id="questions-list" class="rule-text-list"></div>
+              <button type="button" class="btn btn-ghost" id="add-question">Add question</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card rule-full" aria-labelledby="fallback-heading">
+          <h2 id="fallback-heading">8. Questions when no rule is clear enough</h2>
+          <p class="muted">These questions appear when the best matching rule has confidence below 50.</p>
+          <div id="no-match-list" class="rule-text-list"></div>
+          <button type="button" class="btn btn-ghost" id="add-no-match">Add fallback question</button>
+        </section>
+      </div>
+
+      <div class="rule-save-bar">
+        <div>
+          <strong>Review before saving</strong>
+          <p class="muted">Changes affect future verdict calculations in this browser.</p>
+        </div>
+        <div class="list-actions">
+          <button type="button" class="btn btn-danger" id="restore-rules">Restore all master rules</button>
+          <button type="submit" class="btn btn-success" id="save-rule">Save selected rule</button>
+        </div>
+      </div>
+    </form>
+  </main>
+
+  <script src="/static/js/core/storage.js"></script>
+  <script src="/static/js/core/config-manager.js"></script>
+  <script src="/static/js/modules/rules-editor.js?v=20260810-1"></script>
+  <script src="/static/js/core/footer.js?v=20260809-2"></script>
+</body>
+</html>

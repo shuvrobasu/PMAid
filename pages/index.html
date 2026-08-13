@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PMAID — Home</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css?v=20260810-5">
+  <link rel="stylesheet" href="/static/css/themes/light.css">
+  <link rel="stylesheet" href="/static/css/themes/dark.css">
+</head>
+<body class="theme-light">
+  <header class="app-header">
+    <a class="brand" href="/pages/index.html"><span class="brand-mark">PMAID</span><span class="brand-name">PM AI Aid™</span></a>
+    <nav class="app-nav" aria-label="Primary navigation">
+      <a href="/pages/config.html">Config</a>
+      <a href="/pages/help.html">Help</a>
+      <a href="/pages/splash.html">Splash</a>
+    </nav>
+  </header>
+
+  <main class="container home-page">
+    <section class="home-hero">
+      <p class="home-eyebrow">LOCAL-FIRST AI PROJECT DELIVERY</p>
+      <h1 id="app-title">PMAID — PM AI Aid™</h1>
+      <p id="app-tagline" class="home-tagline"></p>
+      <div class="home-capabilities" aria-label="Core capabilities">
+        <span>AI fit assessment</span>
+        <span>EU AI Act screening</span>
+        <span>Delivery planning</span>
+      </div>
+    </section>
+
+    <div class="grid-2 home-grid">
+      <a class="card entry-card home-card" href="/pages/discovery.html">
+        <p class="home-card-kicker">01 · DISCOVER</p>
+        <h2 id="lbl-discovery">Start Discovery</h2>
+        <p class="muted">New project, unknown AI approach. Problem framing wizard.</p>
+      </a>
+      <div class="card entry-card home-card">
+        <p class="home-card-kicker">02 · CONTINUE</p>
+        <h2 id="lbl-load">Load Saved Project</h2>
+        <p class="muted">Return to an existing plan.</p>
+        <div id="project-list" tabindex="0" aria-label="Saved projects"></div>
+      </div>
+      <a class="card entry-card home-card" href="/pages/config.html">
+        <p class="home-card-kicker">03 · CONFIGURE</p>
+        <h2 id="lbl-config">Load Config</h2>
+        <p class="muted">Configuration Centre — org overlays, import/export.</p>
+      </a>
+      <div class="card home-card">
+        <p class="home-card-kicker">04 · EXPLORE</p>
+        <h2 id="lbl-samples">Sample Projects</h2>
+        <p class="muted">Pre-built examples seeded on first run.</p>
+        <div id="sample-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/core/storage.js"></script>
+  <script src="/static/js/core/config-manager.js"></script>
+  <script src="/static/js/core/state-manager.js"></script>
+  <script src="/static/js/modules/local-ai.js"></script>
+  <script src="/static/js/modules/eu-classifier.js"></script>
+  <script src="/static/js/modules/rule-engine.js"></script>
+  <script src="/static/js/modules/methodology-mapper.js"></script>
+  <script src="/static/js/modules/raci-builder.js"></script>
+  <script src="/static/js/modules/process-builder.js"></script>
+  <script src="/static/js/modules/samples.js"></script>
+  <script>
+    var sponsorSummaryAvailable = false;
+    var projectIcons = {
+      open: "<svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'><path d='M3 7h6l2 2h10l-2 10H5L3 7Z'></path><path d='M3 10h18'></path></svg>",
+      verdict: "<svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'><circle cx='12' cy='12' r='9'></circle><path d='m8 12 2.5 2.5L16 9'></path></svg>",
+      sponsor: "<svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'><path d='M7 3h7l3 3v15H7V3Z'></path><path d='M14 3v4h4'></path><path d='M9.5 12h5'></path><path d='M9.5 16h5'></path></svg>",
+      delete: "<svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'><path d='M4 7h16'></path><path d='M9 7V4h6v3'></path><path d='m7 7 1 13h8l1-13'></path><path d='M10 11v5'></path><path d='M14 11v5'></path></svg>"
+    };
+
+    function setProjectIcon(button, label, iconName) {
+      button.className = button.className + " project-icon-btn";
+      button.setAttribute("aria-label", label);
+      button.title = label;
+      button.innerHTML = projectIcons[iconName];
+    }
+
+    function renderProjects(list, containerId, samplesOnly) {
+      var el = document.getElementById(containerId);
+      el.innerHTML = "";
+      var filtered = [];
+      var i = 0;
+      while (i < list.length) {
+        var isSample = list[i].project_id.indexOf("sample_") === 0;
+        if (samplesOnly) {
+          if (isSample) {
+            filtered.push(list[i]);
+          }
+        } else {
+          if (!isSample) {
+            filtered.push(list[i]);
+          }
+        }
+        i = i + 1;
+      }
+      if (filtered.length === 0) {
+        el.innerHTML = "<p class='muted'>None yet.</p>";
+        return;
+      }
+      i = 0;
+      while (i < filtered.length) {
+        var p = filtered[i];
+        var row = document.createElement("div");
+        row.className = "project-row";
+        var title = document.createElement("div");
+        title.className = "project-summary";
+        title.innerHTML = "<strong>" + p.project_name + "</strong>";
+        if (p.recommendations) {
+          title.innerHTML = title.innerHTML + " <span class='muted'>· " +
+            (p.recommendations.ai_label || p.recommendations.ai_type) +
+            " · " + (p.eu_tier || "") + " · " + (p.methodology || "") + "</span>";
+        }
+        if (Array.isArray(p.version_history)) {
+          if (p.version_history.length > 0) {
+            title.innerHTML = title.innerHTML + " <span class='muted'>· version " +
+              p.version_history.length + "</span>";
+          }
+        }
+        var actions = document.createElement("div");
+        actions.className = "list-actions project-actions";
+        var openBtn = document.createElement("button");
+        openBtn.type = "button";
+        openBtn.className = "btn";
+        setProjectIcon(openBtn, "Open " + p.project_name, "open");
+        (function (id) {
+          openBtn.addEventListener("click", function () {
+            StateManager.loadById(id);
+            var proj = StateManager.get();
+            if (proj && proj.recommendations && proj.recommendations.ai_type === "NOT_AI") {
+              if (!proj.recommendations.override) {
+                if (proj.non_ai_plan) {
+                  window.location.href = "/pages/planner.html";
+                  return;
+                }
+                window.location.href = "/pages/verdict.html";
+                return;
+              }
+            }
+            if (proj && proj.phases && proj.phases.length > 0) {
+              window.location.href = "/pages/planner.html";
+              return;
+            }
+            window.location.href = "/pages/verdict.html";
+          });
+        })(p.project_id);
+        var verdictBtn = document.createElement("button");
+        verdictBtn.type = "button";
+        verdictBtn.className = "btn btn-ghost";
+        setProjectIcon(verdictBtn, "View verdict for " + p.project_name, "verdict");
+        (function (id) {
+          verdictBtn.addEventListener("click", function () {
+            StateManager.loadById(id);
+            window.location.href = "/pages/verdict.html";
+          });
+        })(p.project_id);
+        actions.appendChild(openBtn);
+        actions.appendChild(verdictBtn);
+        if (sponsorSummaryAvailable) {
+          var sponsorBtn = document.createElement("button");
+          sponsorBtn.type = "button";
+          sponsorBtn.className = "btn btn-ghost";
+          setProjectIcon(sponsorBtn, "Sponsor Summary for " + p.project_name, "sponsor");
+          (function (id) {
+            sponsorBtn.addEventListener("click", function () {
+              StateManager.loadById(id);
+              window.location.href = "/pages/export.html";
+            });
+          })(p.project_id);
+          actions.appendChild(sponsorBtn);
+        }
+        if (samplesOnly === false) {
+          var deleteBtn = document.createElement("button");
+          deleteBtn.type = "button";
+          deleteBtn.className = "btn btn-danger";
+          setProjectIcon(deleteBtn, "Delete " + p.project_name, "delete");
+          (function (id, name) {
+            deleteBtn.addEventListener("click", function () {
+              var confirmed = window.confirm("Delete project \"" + name + "\"? This cannot be undone.");
+              if (confirmed === false) {
+                return;
+              }
+              StateManager.deleteById(id);
+              renderProjects(StateManager.listProjects(), "project-list", false);
+            });
+          })(p.project_id, p.project_name);
+          actions.appendChild(deleteBtn);
+        }
+        row.appendChild(title);
+        row.appendChild(actions);
+        el.appendChild(row);
+        i = i + 1;
+      }
+    }
+
+    Promise.all([
+      ConfigManager.load(),
+      StateManager.ready()
+    ]).then(function (parts) {
+      var config = parts[0];
+      var splashKey = config.ui.samples.splash_key;
+      if (!PrismStorage.has(splashKey)) {
+        window.location.href = "/pages/splash.html";
+        return;
+      }
+
+      PrismStorage.applyTheme();
+
+      document.getElementById("app-title").textContent = config.ui.app.name + " — " + config.ui.app.full_name;
+      document.getElementById("app-tagline").textContent = config.ui.app.tagline;
+      document.getElementById("lbl-discovery").textContent = config.ui.labels.start_discovery;
+      document.getElementById("lbl-load").textContent = config.ui.labels.load_project;
+      document.getElementById("lbl-config").textContent = config.ui.labels.load_config;
+      document.getElementById("lbl-samples").textContent = config.ui.labels.sample_projects;
+
+      Samples.seedIfNeeded(config);
+      return StateManager.flush().then(function () {
+        var list = StateManager.listProjects();
+        renderProjects(list, "project-list", false);
+        renderProjects(list, "sample-list", true);
+        LocalAI.check(config).then(function (available) {
+          if (available === false) {
+            return;
+          }
+          sponsorSummaryAvailable = true;
+          var refreshedList = StateManager.listProjects();
+          renderProjects(refreshedList, "project-list", false);
+          renderProjects(refreshedList, "sample-list", true);
+        });
+      });
+    }).catch(function (err) {
+      document.querySelector("main").innerHTML =
+        "<div class='danger-box'><p>Could not load PMAID data.</p><p>From the project root run: <code>python server.py</code></p><p>" + err + "</p></div>";
+    });
+  </script>
+  <script src="/static/js/core/footer.js?v=20260809-2"></script>
+</body>
+</html>

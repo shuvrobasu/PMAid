@@ -1,0 +1,87 @@
+gates:
+  - gate_id: g_problem_clear
+    name: Problem and success criteria agreed
+    description: Sponsor has signed the problem statement and success metrics
+    phase: problem_framing
+    criteria:
+      - Problem statement is written without solution bias
+      - Success metrics are measurable
+      - Owner of go or no-go is named
+  - gate_id: g_eu_tier_known
+    name: EU AI Act tier documented
+    description: Tier is classified and mandatory packages listed
+    phase: problem_framing
+    criteria:
+      - Tier badge is recorded
+      - Mandatory work packages are on the plan
+      - Prohibited use cases are stopped
+  - gate_id: g_data_sufficient
+    name: Data sufficiency confirmed
+    description: Inventory shows a credible path to training quality
+    phase: data_discovery
+    criteria:
+      - Sources and owners are listed
+      - Volume and quality risks are scored
+      - Labelling plan exists if supervised
+  - gate_id: g_privacy_cleared
+    name: Privacy clearance
+    description: Lawful basis and retention are acceptable
+    phase: data_discovery
+    criteria:
+      - Privacy review complete
+      - Red lines documented
+  - gate_id: g_architecture_approved
+    name: Architecture approved
+    description: Approach, integration, and monitoring design accepted
+    phase: solution_architecture
+    criteria:
+      - Model options compared
+      - Integration map reviewed
+      - Ethics review recorded
+  - gate_id: g_training_ready
+    name: Training data ready
+    description: Pipelines produce versioned train, test, and validation sets
+    phase: data_engineering
+    criteria:
+      - Leakage review done
+      - Splits are reproducible
+      - Data version id recorded
+  - gate_id: g_model_beats_baseline
+    name: Model beats baseline
+    description: Champion model exceeds agreed baseline on held-out data
+    phase: model_development
+    criteria:
+      - Baseline metric recorded
+      - Champion metric recorded
+      - Decision owner accepts the lift
+  - gate_id: g_validation_passed
+    name: Validation passed
+    description: Performance, edge, and integration tests accepted
+    phase: validation_testing
+    criteria:
+      - Performance thresholds met
+      - Edge cases reviewed
+      - Integration tests green
+  - gate_id: g_fairness_accepted
+    name: Fairness accepted
+    description: Bias findings reviewed and residual risk accepted
+    phase: validation_testing
+    criteria:
+      - Subgroup metrics documented
+      - Mitigations listed or residual risk accepted
+  - gate_id: g_go_live
+    name: Go-live approved
+    description: Rollout plan, monitoring, and rollback are ready
+    phase: deployment
+    criteria:
+      - Shadow or canary plan approved
+      - Monitoring active
+      - Rollback procedure tested
+  - gate_id: g_ops_ready
+    name: Operations ready
+    description: Ownership, drift, and retraining are in BAU
+    phase: hypercare
+    criteria:
+      - Operational owner named
+      - Drift alerts defined
+      - Retrain budget and trigger defined

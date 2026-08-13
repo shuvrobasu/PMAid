@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PMAID — Help &amp; FAQ</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css?v=20260810-3">
+  <link rel="stylesheet" href="/static/css/themes/light.css">
+  <link rel="stylesheet" href="/static/css/themes/dark.css">
+</head>
+<body class="theme-light">
+  <header class="app-header">
+    <a class="brand" href="/pages/index.html"><span class="brand-mark">PMAID</span><span class="brand-name">PM AI Aid™</span></a>
+    <nav class="app-nav" aria-label="Primary navigation">
+      <a href="/pages/index.html">Home</a>
+      <a href="/pages/config.html">Config</a>
+      <a href="/pages/help.html" aria-current="page">Help</a>
+    </nav>
+  </header>
+
+  <main class="container help-page">
+    <section class="help-hero">
+      <div>
+        <p class="home-card-kicker">SUPPORT</p>
+        <h1>Help &amp; FAQ</h1>
+        <p class="muted">Practical guidance for moving from problem discovery to a reviewable delivery plan.</p>
+      </div>
+      <div class="list-actions">
+        <a class="btn" href="/pages/discovery.html">Start Discovery</a>
+        <a class="btn btn-ghost" href="/pages/index.html">Return Home</a>
+      </div>
+    </section>
+
+    <div class="help-layout">
+      <aside class="card help-quick-start">
+        <h2>Quick start</h2>
+        <ol>
+          <li>Describe the business problem in Discovery.</li>
+          <li>Confirm every structured answer, including AI suggestions.</li>
+          <li>Review the recommendation and EU AI Act tier.</li>
+          <li>Open the eight-phase AI plan or the smaller NOT-AI alternative plan.</li>
+          <li>Confirm assumptions, stakeholder needs, tasks, and gates, then export project artefacts.</li>
+        </ol>
+        <div class="help-callout">
+          <strong>Keep inputs generic.</strong>
+          <p>Do not enter confidential, commercially sensitive, or personal data.</p>
+        </div>
+      </aside>
+
+      <section aria-labelledby="faq-heading">
+        <h2 id="faq-heading">Frequently asked questions</h2>
+        <div class="faq-list">
+          <details class="faq-item" open>
+            <summary>What does PMAID do?</summary>
+            <div class="faq-answer">
+              <p>PMAID helps programme managers assess whether AI is appropriate, screen an initiative against configured EU AI Act tiers, and generate a configurable delivery plan. It is a planning aid, not a production AI system.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>What do AI recommended, NOT_AI, and NO_MATCH mean?</summary>
+            <div class="faq-answer">
+              <p><strong>AI recommended</strong> means a configured decision rule matched the answers. A score of <strong>60 or above</strong> is shown normally. A score from <strong>40–59</strong> includes an amber warning because the available signal is limited. A score <strong>below 40</strong> becomes <strong>NO_MATCH</strong>, which means more clarification is required before PMAID can recommend an approach. <strong>NOT_AI</strong> means a simpler non-AI approach is preferred; PMAID provides a small trackable plan for that approach.</p>
+              <p>For review and challenge, a recommendation also shows <strong>Matched rule: [rule_id]</strong>. NO_MATCH does not show a matched rule.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>What are assumptions and the stakeholder map?</summary>
+            <div class="faq-answer">
+              <p>The assumption register records things the plan currently treats as true, separately from possible risks. Give each assumption an owner, a confirmation point, and a status. The stakeholder map shows who must receive, review, or approve information in each phase. Those entries automatically create phase-specific questions in the question-back list.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Where can I see what changed after editing Discovery?</summary>
+            <div class="faq-answer">
+              <p>Open the Verdict and expand Version history. PMAID records every completed Discovery run, including changed answers and any resulting change to the recommendation or EU AI Act tier. Older projects receive a baseline the first time you edit and rerun them.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Is the EU AI Act tier legal advice?</summary>
+            <div class="faq-answer">
+              <p>No. The tier is an initial planning screen based on your answers and the local configuration. High-risk or prohibited results should be reviewed by qualified legal, risk, and compliance specialists.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Where are projects stored?</summary>
+            <div class="faq-answer">
+              <p>In <strong>server mode</strong>, projects are stored in PMAID's local SQLite database at <code>data/pmaid.db</code>. They stay on this machine and are available to browsers using that PMAID server.</p>
+              <p>In <strong>browser-only mode</strong>, projects are stored in this browser's <code>localStorage</code>. The persistent amber banner identifies this mode. Clearing browser data deletes browser-only projects.</p>
+              <p>Stopping llama.cpp does not enable browser-only mode; it only hides Local AI features. To test browser-only mode, stop <code>server.py</code>, run <code>python -m http.server 8001</code> from the project root, and open <code>http://127.0.0.1:8001/pages/index.html</code>.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>How do I delete a project?</summary>
+            <div class="faq-answer">
+              <p>Open Home and use the trash icon beside a saved project. Hover over or focus an icon to see its action label. PMAID asks for confirmation before removing the project, and seeded sample projects are protected. The saved-project list scrolls when it contains more projects than fit in the panel.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Why are the local AI features missing?</summary>
+            <div class="faq-answer">
+              <p>PMAID shows its three Local AI controls only after the browser receives a valid response from the configured llama.cpp <code>/completion</code> endpoint. This health check is independent of server mode and browser-only mode.</p>
+              <p>With the default master configuration, <code>python server.py</code> attempts to start llama.cpp as a hidden background process, so a separate llama console window is not expected. You may instead start <code>llama-server.exe</code> yourself with the PowerShell command shown in Config.</p>
+              <p>Config settings tell this browser which endpoint to call and generate the manual launch command. Saving them does not start or restart llama.cpp. After the endpoint is running, reload the page. Until its health check succeeds, Problem Intake Assist, Sponsor Summary, and What am I missing? remain unavailable.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Does local AI make the final recommendation?</summary>
+            <div class="faq-answer">
+              <p>No. Local AI assists problem intake, sponsor summaries, and plan challenge. The configured rule engine produces the recommendation. AI-generated content must be reviewed before use.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>How do I export a plan?</summary>
+            <div class="faq-answer">
+              <p>Open Export after a plan has been generated. PMAID can prepare the project charter, risk register, RACI matrix, and question-back list. The charter includes the alternative mini-plan when AI is not recommended, plus the assumption and stakeholder registers. Use the browser Print dialog when you need a PDF.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>How do I change configuration?</summary>
+            <div class="faq-answer">
+              <p>Use the guided Config screens to add, edit, or delete tasks, roles, and risks and assign them to phases. These shared changes are stored in <code>config/org/bundle.json</code>. Download or import the versioned organisation bundle to move that layer between PMAID installations.</p>
+              <p>Theme, Local AI, custom phases, and current rule overrides remain browser-only settings with their own separate backup. Neither kind of override changes master YAML, and neither backup includes SQLite projects.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>What should I do if port 8000 is already in use?</summary>
+            <div class="faq-answer">
+              <p>PMAID may already be running. Open <code>http://localhost:8000/pages/index.html</code>. To restart it, run <code>python stop_server.py</code> and then <code>python server.py</code>.</p>
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/static/js/core/storage.js"></script>
+  <script src="/static/js/core/config-manager.js"></script>
+  <script>
+    PrismStorage.applyTheme();
+  </script>
+  <script src="/static/js/core/footer.js?v=20260809-2"></script>
+</body>
+</html>

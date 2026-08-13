@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PMAID — Export</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css?v=20260809-2">
+  <link rel="stylesheet" href="/static/css/themes/light.css">
+  <link rel="stylesheet" href="/static/css/themes/dark.css">
+</head>
+<body class="theme-light">
+  <header class="app-header">
+    <a class="brand" href="/pages/index.html"><span class="brand-mark">PMAID</span><span class="brand-name">PM AI Aid™</span></a>
+    <nav class="app-nav" aria-label="Primary navigation">
+      <a href="/pages/planner.html">Planner</a>
+      <a href="/pages/visualizer.html">Visualizer</a>
+      <a href="/pages/help.html">Help</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1>Export</h1>
+    <p class="muted" id="print-hint"></p>
+    <div class="help-callout" role="note">
+      <strong>Local AI is required for Sponsor Summary.</strong>
+      <p>If Local AI is disabled or llama.cpp is unavailable, PMAID cannot generate a sponsor summary and hides the Sponsor Summary controls.</p>
+    </div>
+    <div class="grid-2" id="export-cards"></div>
+    <section class="card ai-feature" id="sponsor-summary-feature" hidden>
+      <h2>Sponsor Summary</h2>
+      <button type="button" class="btn" id="generate-sponsor-summary">Generate Sponsor Summary</button>
+      <p class="ai-error" id="sponsor-summary-error" role="status" hidden>Could not generate the summary. Check llama.cpp and try again.</p>
+      <div class="ai-output" id="sponsor-summary-output" hidden>
+        <p><strong>AI-generated — review before sending.</strong></p>
+        <p id="sponsor-summary-text"></p>
+        <button type="button" class="btn btn-ghost" id="copy-sponsor-summary">Copy</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/js/core/storage.js"></script>
+  <script src="/static/js/core/config-manager.js"></script>
+  <script src="/static/js/core/state-manager.js"></script>
+  <script src="/static/js/modules/local-ai.js"></script>
+  <script src="/static/js/modules/risk-analyzer.js"></script>
+  <script src="/static/js/modules/raci-builder.js"></script>
+  <script src="/static/js/viz/raci-grid.js"></script>
+  <script src="/static/js/modules/export.js"></script>
+  <script>
+    function sponsorSummaryPrompt(project) {
+      return "Write an executive sponsor brief of 100 to 130 words in four or five sentences and one paragraph. " +
+        "State the business outcome and value, explain the recommended approach and human decision role, name only the two most material risks, " +
+        "and finish with only the two decisions the sponsor must make next. Use plain English and project-specific facts. " +
+        "Do not list phases, tasks, work packages, controls, technologies, resources, roles, or open questions. " +
+        "Do not invent metrics, repeat an idea, or use generic claims about successful AI delivery. " +
+        "Do not use a title, heading, label, bullet, colon, or blank line. Output only the brief. Full project state: " + JSON.stringify(project);
+    }
+
+    function normalizeSponsorSummary(content) {
+      return content.replace(/\s+/g, " ").trim();
+    }
+
+    function sponsorSummaryNeedsRewrite(content) {
+      var words = content.split(/\s+/);
+      if (words.length < 70) {
+        return true;
+      }
+      if (words.length > 160) {
+        return true;
+      }
+      var forbidden = [
+        "suggested phases",
+        "mandatory work packages",
+        "gpu",
+        "compute budget",
+        "project team should",
+        "successful execution",
+        "successful ai project"
+      ];
+      var lower = content.toLowerCase();
+      var i = 0;
+      while (i < forbidden.length) {
+        if (lower.indexOf(forbidden[i]) >= 0) {
+          return true;
+        }
+        i = i + 1;
+      }
+      return false;
+    }
+
+    function sponsorRewritePrompt(project, draft) {
+      return "Rewrite the draft as a concise executive sponsor brief of 90 to 130 words in one paragraph. " +
+        "Keep only the project outcome, recommended approach, two material risks, and two sponsor decisions. " +
+        "Delete phase inventories, compliance checklists, tooling, staffing, GPU or budget questions, repetition, and generic delivery language. " +
+        "Use project-specific plain English. Do not use a title, heading, label, bullet, colon, or blank line. " +
+        "Output only the revised brief. Full project state: " + JSON.stringify(project) + " Draft: " + draft;
+    }
+
+    function requestSponsorSummary(project) {
+      return LocalAI.complete(sponsorSummaryPrompt(project)).then(function (draft) {
+        if (draft === null) {
+          return null;
+        }
+        var normalizedDraft = normalizeSponsorSummary(draft);
+        if (sponsorSummaryNeedsRewrite(normalizedDraft) === false) {
+          return normalizedDraft;
+        }
+        return LocalAI.complete(sponsorRewritePrompt(project, normalizedDraft)).then(function (revised) {
+          if (revised === null) {
+            return null;
+          }
+          var normalizedRevision = normalizeSponsorSummary(revised);
+          if (sponsorSummaryNeedsRewrite(normalizedRevision)) {
+            return null;
+          }
+          return normalizedRevision;
+        });
+      });
+    }
+
+    function generateSponsorSummary(project) {
+      var button = document.getElementById("generate-sponsor-summary");
+      var output = document.getElementById("sponsor-summary-output");
+      var error = document.getElementById("sponsor-summary-error");
+      button.disabled = true;
+      button.textContent = "Generating…";
+      error.hidden = true;
+      output.hidden = true;
+      requestSponsorSummary(project).then(function (content) {
+        button.disabled = false;
+        button.textContent = "Generate Sponsor Summary";
+        if (content === null) {
+          error.hidden = false;
+          return;
+        }
+        document.getElementById("sponsor-summary-text").textContent = content;
+        output.hidden = false;
+      }).catch(function () {
+        button.disabled = false;
+        button.textContent = "Generate Sponsor Summary";
+        error.hidden = false;
+      });
+    }
+
+    function copySponsorSummary() {
+      if (navigator.clipboard === undefined) {
+        return;
+      }
+      if (typeof navigator.clipboard.writeText !== "function") {
+        return;
+      }
+      var content = document.getElementById("sponsor-summary-text").textContent;
+      var copyRequest = navigator.clipboard.writeText(content);
+      copyRequest.catch(function () {
+        return false;
+      });
+    }
+
+    PrismStorage.applyTheme();
+    Promise.all([
+      ConfigManager.load(),
+      StateManager.ready()
+    ]).then(function (parts) {
+      var config = parts[0];
+      var project = StateManager.get();
+      var exp = config.ui.export;
+      document.getElementById("print-hint").textContent = exp.print_hint;
+      if (!project) {
+        document.getElementById("export-cards").innerHTML =
+          "<p>No active project. <a href='/pages/index.html'>Choose a project on Home</a>, then select Sponsor Summary.</p>";
+        return;
+      }
+      var items = [
+        { id: "charter", title: exp.charter, fn: function () { ExportModule.charter(project, config); } },
+        { id: "risk", title: exp.risk_register, fn: function () { ExportModule.riskRegister(project); } },
+        { id: "raci", title: exp.raci, fn: function () { ExportModule.raci(project); } },
+        { id: "qb", title: exp.question_back_list, fn: function () { ExportModule.questionBack(project); } }
+      ];
+      var root = document.getElementById("export-cards");
+      var i = 0;
+      while (i < items.length) {
+        var card = document.createElement("div");
+        card.className = "card entry-card";
+        card.innerHTML = "<h2>" + items[i].title + "</h2><p class='muted'>Opens a printable HTML document.</p>";
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn";
+        btn.textContent = "Generate";
+        (function (fn) {
+          btn.addEventListener("click", fn);
+        })(items[i].fn);
+        card.appendChild(btn);
+        root.appendChild(card);
+        i = i + 1;
+      }
+
+      LocalAI.check(config).then(function (available) {
+        var feature = document.getElementById("sponsor-summary-feature");
+        if (available === false) {
+          feature.hidden = true;
+          return;
+        }
+        feature.hidden = false;
+        document.getElementById("generate-sponsor-summary").addEventListener("click", function () {
+          generateSponsorSummary(project);
+        });
+        document.getElementById("copy-sponsor-summary").addEventListener("click", copySponsorSummary);
+      });
+    });
+  </script>
+  <script src="/static/js/core/footer.js?v=20260809-2"></script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+methodologies:
+  - id: waterfall
+    label: Waterfall
+    description: Sequential phases with stage-gate approvals
+    advisory: Waterfall is a poor fit for experimental model work. Expect rework when Model Development cycles invalidate earlier assumptions.
+    phase_overlay:
+      problem_framing: requirements
+      data_discovery: analysis
+      solution_architecture: design
+      data_engineering: build
+      model_development: build
+      validation_testing: test
+      deployment: release
+      hypercare: operate
+    duration_multiplier: 1.2
+  - id: scrum
+    label: Scrum
+    description: Time-boxed sprints with backlog and ceremonies
+    advisory: Map Model Development experiments to sprint goals. Treat data blockers as sprint risks, not backlog polish.
+    phase_overlay:
+      problem_framing: discovery_sprint
+      data_discovery: discovery_sprint
+      solution_architecture: architecture_spike
+      data_engineering: sprint_execution
+      model_development: sprint_execution
+      validation_testing: sprint_execution
+      deployment: release_sprint
+      hypercare: sustainment
+    duration_multiplier: 1.0
+  - id: safe
+    label: SAFe
+    description: Scaled Agile with PI planning and ART cadence
+    advisory: Put data readiness and EU obligations on the program board. Model experiments belong in innovation and planning iteration capacity.
+    phase_overlay:
+      problem_framing: pi_planning
+      data_discovery: pi_execution
+      solution_architecture: architectural_runway
+      data_engineering: pi_execution
+      model_development: pi_execution
+      validation_testing: pi_execution
+      deployment: release_on_demand
+      hypercare: continuous_operations
+    duration_multiplier: 1.1
+  - id: kanban
+    label: Kanban
+    description: Continuous flow with WIP limits
+    advisory: Use explicit WIP limits on experiment lanes. Hypercare is a permanent swimlane, not a project end date.
+    phase_overlay:
+      problem_framing: intake
+      data_discovery: ready_queue
+      solution_architecture: design_queue
+      data_engineering: in_progress
+      model_development: in_progress
+      validation_testing: validate
+      deployment: deploy
+      hypercare: operate
+    duration_multiplier: 0.95
+  - id: hybrid
+    label: Hybrid
+    description: Mix of stage gates for compliance and agile execution for build
+    advisory: Keep EU and architecture gates sequential. Run Data Engineering and Model Development iteratively inside those gates.
+    phase_overlay:
+      problem_framing: stage_gate
+      data_discovery: stage_gate
+      solution_architecture: stage_gate
+      data_engineering: agile_execution
+      model_development: agile_execution
+      validation_testing: stage_gate
+      deployment: release
+      hypercare: operate
+    duration_multiplier: 1.05
+  - id: custom
+    label: Custom
+    description: Organisation-defined process overlay
+    advisory: Custom keeps the full PRISM phase and task library from your AI recommendation. Ceremony names are unlabelled until you add an org overlay. Prefer Scrum, Kanban, SAFe, Hybrid, or Waterfall if you want built-in methodology mapping. Config Centre is optional admin — not required to run a project.
+    phase_overlay:
+      problem_framing: org_defined
+      data_discovery: org_defined
+      solution_architecture: org_defined
+      data_engineering: org_defined
+      model_development: org_defined
+      validation_testing: org_defined
+      deployment: org_defined
+      hypercare: org_defined
+    duration_multiplier: 1.0

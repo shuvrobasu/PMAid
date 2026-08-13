@@ -1,0 +1,153 @@
+risks:
+  - risk_id: risk_wrong_problem
+    title: Solving the wrong problem
+    description: Team optimises a metric that does not change business outcomes
+    category: framing
+    default_likelihood: 3
+    default_impact: 5
+    phases:
+      - problem_framing
+  - risk_id: risk_eu_misclass
+    title: EU AI Act misclassification
+    description: Wrong tier leads to missing mandatory obligations or false stop
+    category: regulatory
+    default_likelihood: 2
+    default_impact: 5
+    phases:
+      - problem_framing
+      - validation_testing
+  - risk_id: risk_data_gap
+    title: Insufficient data
+    description: Available data cannot support the intended model quality
+    category: data
+    default_likelihood: 4
+    default_impact: 5
+    phases:
+      - data_discovery
+      - model_development
+  - risk_id: risk_label_quality
+    title: Poor label quality
+    description: Noisy or biased labels cap model performance and hide errors
+    category: data
+    default_likelihood: 3
+    default_impact: 4
+    phases:
+      - data_discovery
+      - data_engineering
+  - risk_id: risk_privacy
+    title: Privacy or lawful basis gap
+    description: Data cannot be used as planned under policy or law
+    category: compliance
+    default_likelihood: 2
+    default_impact: 5
+    phases:
+      - data_discovery
+  - risk_id: risk_overfit_arch
+    title: Over-engineered architecture
+    description: Complex design before problem and data are proven
+    category: architecture
+    default_likelihood: 3
+    default_impact: 3
+    phases:
+      - solution_architecture
+  - risk_id: risk_integration
+    title: Integration failure
+    description: Model cannot be consumed by target systems or workflows
+    category: architecture
+    default_likelihood: 3
+    default_impact: 4
+    phases:
+      - solution_architecture
+      - deployment
+  - risk_id: risk_pipeline_debt
+    title: Pipeline technical debt
+    description: Fragile ingestion blocks every experiment cycle
+    category: data
+    default_likelihood: 3
+    default_impact: 4
+    phases:
+      - data_engineering
+  - risk_id: risk_leakage
+    title: Target leakage
+    description: Features include information not available at prediction time
+    category: data
+    default_likelihood: 3
+    default_impact: 5
+    phases:
+      - data_engineering
+      - model_development
+  - risk_id: risk_no_signal
+    title: No predictive signal
+    description: Features do not beat a simple baseline after honest evaluation
+    category: model
+    default_likelihood: 3
+    default_impact: 5
+    phases:
+      - model_development
+  - risk_id: risk_experiment_chaos
+    title: Untracked experiments
+    description: Results cannot be reproduced or compared fairly
+    category: model
+    default_likelihood: 3
+    default_impact: 3
+    phases:
+      - model_development
+  - risk_id: risk_compute_budget
+    title: Compute budget overrun
+    description: Training budget exhausted before a viable model is found
+    category: delivery
+    default_likelihood: 2
+    default_impact: 3
+    phases:
+      - model_development
+  - risk_id: risk_silent_failure
+    title: Silent model failure
+    description: Model degrades or errs without tests catching it
+    category: quality
+    default_likelihood: 3
+    default_impact: 5
+    phases:
+      - validation_testing
+      - hypercare
+  - risk_id: risk_bias
+    title: Unfair outcomes
+    description: Subgroup harm or unequal error rates
+    category: ethics
+    default_likelihood: 3
+    default_impact: 5
+    phases:
+      - validation_testing
+      - model_development
+  - risk_id: risk_rollout
+    title: Unsafe rollout
+    description: Full traffic switch without shadow or canary controls
+    category: operations
+    default_likelihood: 2
+    default_impact: 5
+    phases:
+      - deployment
+  - risk_id: risk_monitor_blind
+    title: Monitoring blind spots
+    description: Live issues are invisible until users complain
+    category: operations
+    default_likelihood: 3
+    default_impact: 4
+    phases:
+      - deployment
+      - hypercare
+  - risk_id: risk_drift
+    title: Model drift
+    description: Data or concept drift erodes production performance
+    category: operations
+    default_likelihood: 4
+    default_impact: 4
+    phases:
+      - hypercare
+  - risk_id: risk_no_owner
+    title: No operational owner
+    description: After launch nobody owns retraining or incidents
+    category: operations
+    default_likelihood: 3
+    default_impact: 4
+    phases:
+      - hypercare

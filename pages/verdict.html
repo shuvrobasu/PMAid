@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PMAID — Verdict</title>
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css?v=20260810-3">
+  <link rel="stylesheet" href="/static/css/themes/light.css">
+  <link rel="stylesheet" href="/static/css/themes/dark.css">
+</head>
+<body class="theme-light">
+  <header class="app-header">
+    <a class="brand" href="/pages/index.html"><span class="brand-mark">PMAID</span><span class="brand-name">PM AI Aid™</span></a>
+    <nav class="app-nav" aria-label="Primary navigation">
+      <a href="/pages/discovery.html?mode=edit">Discovery</a>
+      <a href="/pages/planner.html">Planner</a>
+      <a href="/pages/export.html">Export</a>
+      <a href="/pages/help.html">Help</a>
+    </nav>
+  </header>
+
+  <main class="container" id="verdict-root">
+    <p class="muted">Loading verdict…</p>
+  </main>
+
+  <script src="/static/js/core/storage.js"></script>
+  <script src="/static/js/core/config-manager.js"></script>
+  <script src="/static/js/core/state-manager.js"></script>
+  <script src="/static/js/modules/local-ai.js"></script>
+  <script src="/static/js/modules/eu-classifier.js"></script>
+  <script src="/static/js/modules/rule-engine.js"></script>
+  <script src="/static/js/modules/methodology-mapper.js"></script>
+  <script src="/static/js/modules/raci-builder.js"></script>
+  <script src="/static/js/modules/process-builder.js"></script>
+  <script>
+    var noMatchAssistRunning = false;
+
+    function escapeText(value) {
+      if (value === null) {
+        return "";
+      }
+      if (value === undefined) {
+        return "";
+      }
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function versionHistoryHtml(project) {
+      var history = project.version_history;
+      if (Array.isArray(history) === false) {
+        history = [];
+      }
+      var html = "<div class='card'><h2>Version history</h2>";
+      html = html + "<p class='muted'>Each entry records a completed Discovery run. This shows what changed before the verdict was recalculated.</p>";
+      if (history.length === 0) {
+        html = html + "<p>No Discovery history has been recorded for this older project.</p></div>";
+        return html;
+      }
+      var i = history.length - 1;
+      while (i >= 0) {
+        var entry = history[i];
+        var timestamp = entry.created_at;
+        if (timestamp === undefined) {
+          timestamp = "Time not recorded";
+        }
+        html = html + "<details class='version-entry'";
+        if (i === history.length - 1) {
+          html = html + " open";
+        }
+        html = html + "><summary>Version " + escapeText(entry.version) + " — " +
+          escapeText(entry.summary) + "</summary>";
+        html = html + "<p class='muted'>" + escapeText(timestamp) + "</p>";
+        var changes = entry.changes;
+        if (Array.isArray(changes) === false) {
+          changes = [];
+        }
+        if (changes.length === 0) {
+          html = html + "<p>No answer changes recorded for this run.</p>";
+        } else {
+          html = html + "<ul>";
+          var c = 0;
+          while (c < changes.length) {
+            html = html + "<li><strong>" + escapeText(changes[c].label) + ":</strong> " +
+              escapeText(changes[c].before) + " → " + escapeText(changes[c].after) + "</li>";
+            c = c + 1;
+          }
+          html = html + "</ul>";
+        }
+        html = html + "</details>";
+        i = i - 1;
+      }
+      html = html + "</div>";
+      return html;
+    }
+
+    function nonAIPlanHtml(project) {
+      var plan = project.non_ai_plan;
+      if (plan === null) {
+        return "";
+      }
+      if (plan === undefined) {
+        return "";
+      }
+      var html = "<div class='card'><h2>Suggested alternative plan</h2>";
+      html = html + "<h3>" + escapeText(plan.title) + "</h3>";
+      html = html + "<p><strong>Outcome:</strong> " + escapeText(plan.outcome) + "</p>";
+      html = html + "<h3>Mini-plan</h3>";
+      html = html + "<ol>";
+      var steps = plan.steps;
+      if (Array.isArray(steps) === false) {
+        steps = [];
+      }
+      var i = 0;
+      while (i < steps.length) {
+        html = html + "<li>" + escapeText(steps[i].name) + "</li>";
+        i = i + 1;
+      }
+      html = html + "</ol>";
+      html = html + "<p class='muted'>This is a small delivery path for the simpler solution. Open it in Planner to track each step and its assumptions.</p></div>";
+      return html;
+    }
+
+    function openPlannerAfterSave() {
+      StateManager.flush().then(function () {
+        window.location.href = "/pages/planner.html";
+      }).catch(function () {
+        window.alert("Could not save the project. Check that PMAID is running and try again.");
+      });
+    }
+
+    function badgeClass(tierId) {
+      if (tierId === "high_risk") {
+        return "badge badge-high";
+      }
+      if (tierId === "limited_risk") {
+        return "badge badge-limited";
+      }
+      if (tierId === "minimal_risk") {
+        return "badge badge-minimal";
+      }
+      if (tierId === "prohibited") {
+        return "badge badge-prohibited";
+      }
+      return "badge";
+    }
+
+    function renderNoMatch(project) {
+      var root = document.getElementById("verdict-root");
+      var rec = project.recommendations;
+      var message = rec.message;
+      if (message === undefined) {
+        message = "Your problem does not match any known pattern clearly enough to recommend an approach.";
+      }
+      var questions = rec.questions;
+      if (questions === undefined) {
+        questions = [];
+      }
+      if (questions === null) {
+        questions = [];
+      }
+      var html = "<h1>" + project.project_name + "</h1>";
+      html = html + "<div class='card warning-box'><h2>No clear match</h2>";
+      html = html + "<p>" + message + "</p></div>";
+      html = html + "<div class='card'><h2>Questions to clarify</h2><ol>";
+      var i = 0;
+      while (i < questions.length) {
+        html = html + "<li>" + questions[i] + "</li>";
+        i = i + 1;
+      }
+      html = html + "</ol></div>";
+      html = html + versionHistoryHtml(project);
+      html = html + "<div class='card ai-feature' id='no-match-ai' hidden>";
+      html = html + "<h2>AI assistant</h2>";
+      html = html + "<p>AI assistant is available. Describe your problem in plain language and it will help identify which questions above are most relevant to your situation.</p>";
+      html = html + "<form id='no-match-ai-form'>";
+      html = html + "<div class='form-group'><label for='no-match-ai-text'>Describe your problem</label>";
+      html = html + "<textarea id='no-match-ai-text' required></textarea></div>";
+      html = html + "<button type='submit' class='btn' id='no-match-ai-submit'>Ask AI assistant</button>";
+      html = html + "</form>";
+      html = html + "<div class='ai-output' id='no-match-ai-output' hidden>";
+      html = html + "<p><strong>AI-assisted — not a recommendation.</strong></p>";
+      html = html + "<p id='no-match-ai-response'></p></div></div>";
+      html = html + "<div class='list-actions'>";
+      html = html + "<a class='btn' href='/pages/discovery.html?mode=edit'>Modify answers</a>";
+      html = html + "<a class='btn btn-secondary' href='/pages/index.html'>Return home</a>";
+      html = html + "</div>";
+      root.innerHTML = html;
+    }
+
+    function noMatchAssistPrompt(project, problemText) {
+      var questions = project.recommendations.questions;
+      return "A project manager has an unclear project problem. " +
+        "Identify which clarification questions are most relevant and briefly explain why. " +
+        "Do not recommend AI or a delivery approach. Questions: " + JSON.stringify(questions) +
+        "\nProblem: " + problemText;
+    }
+
+    function submitNoMatchAssist(event, project) {
+      event.preventDefault();
+      if (noMatchAssistRunning === true) {
+        return;
+      }
+      var panel = document.getElementById("no-match-ai");
+      var textarea = document.getElementById("no-match-ai-text");
+      var button = document.getElementById("no-match-ai-submit");
+      var output = document.getElementById("no-match-ai-output");
+      var problemText = textarea.value.trim();
+      if (problemText.length === 0) {
+        return;
+      }
+      noMatchAssistRunning = true;
+      button.disabled = true;
+      button.textContent = "Reviewing…";
+      LocalAI.complete(noMatchAssistPrompt(project, problemText)).then(function (content) {
+        if (content === null) {
+          panel.hidden = true;
+          return;
+        }
+        document.getElementById("no-match-ai-response").textContent = content;
+        output.hidden = false;
+      }).catch(function () {
+        panel.hidden = true;
+      }).finally(function () {
+        noMatchAssistRunning = false;
+        button.disabled = false;
+        button.textContent = "Ask AI assistant";
+      });
+    }
+
+    function enableNoMatchAssist(project, config) {
+      if (project.recommendations.ai_type !== "NO_MATCH") {
+        return;
+      }
+      LocalAI.check(config).then(function (available) {
+        if (available === false) {
+          return;
+        }
+        var panel = document.getElementById("no-match-ai");
+        panel.hidden = false;
+        document.getElementById("no-match-ai-form").addEventListener("submit", function (event) {
+          submitNoMatchAssist(event, project);
+        });
+      });
+    }
+
+    function displayRecommendation(recommendation) {
+      var isPrediction = false;
+      if (recommendation.rule_id === "rule_churn_supervised") {
+        isPrediction = true;
+      }
+      if (recommendation.rule_id === "rule_supervised_prediction") {
+        isPrediction = true;
+      }
+      if (isPrediction === false) {
+        return recommendation;
+      }
+      var display = Object.assign({}, recommendation);
+      display.rule_id = "rule_supervised_prediction";
+      display.ai_label = "Prediction model trained on past examples";
+      display.reasons = [
+        "You need the system to predict a result or rank cases.",
+        "You have past examples showing what happened, so a model can learn from them."
+      ];
+      display.sub_recommendations = [
+        "Start with a simple model using table-based data before trying more complex models.",
+        "Clearly define the result to predict and which information is available before that result happens."
+      ];
+      display.warnings = [
+        "Check that past examples cover the real cases you expect, are available when the prediction is made, and do not accidentally include the answer."
+      ];
+      return display;
+    }
+
+    function renderVerdict(project, config) {
+      var root = document.getElementById("verdict-root");
+      var labels = config.ui.labels;
+      var rec = displayRecommendation(project.recommendations || {});
+      var eu = project.eu_classification || {};
+      var html = "";
+
+      if (rec.ai_type === "NO_MATCH") {
+        renderNoMatch(project);
+        return;
+      }
+
+      var confidence = Number(rec.confidence);
+      if (Number.isFinite(confidence) === false) {
+        confidence = 0;
+      }
+      if (confidence < 40) {
+        project.recommendations = RuleEngine.noMatch(config);
+        renderNoMatch(project);
+        return;
+      }
+
+      var isNotAi = rec.ai_type === "NOT_AI";
+
+      html = html + "<h1>" + project.project_name + "</h1>";
+      if (isNotAi) {
+        html = html + "<div class='card danger-box'><h2>" + labels.verdict_not_ai_title + "</h2>";
+        html = html + "<p>" + (rec.suggested_non_ai || "A non-AI approach is the right answer here.") + "</p></div>";
+      } else {
+        html = html + "<div class='card'><h2>" + labels.verdict_ai_title + "</h2>";
+        html = html + "<p><strong>" + (rec.ai_label || rec.ai_type) + "</strong></p>";
+        html = html + "<p>" + labels.confidence + ": <strong>" + confidence + "%</strong></p>";
+        if (confidence < 60) {
+          html = html + "<div class='warning-box'>This recommendation is based on limited signal. Treat it as a starting point, not a conclusion.</div>";
+        }
+        html = html + "<p class='muted'>This percentage shows how closely your answers match this recommendation. It is not the expected accuracy of the finished system.</p>";
+        html = html + "<p>" + labels.complexity + ": <strong>" + (rec.complexity_shape || "Medium") + "</strong></p></div>";
+      }
+
+      if (rec.rule_id !== undefined) {
+        if (rec.rule_id !== null) {
+          if (String(rec.rule_id).trim() !== "") {
+            html = html + "<p class='muted matched-rule'>Matched rule: <code>" + escapeText(rec.rule_id) + "</code></p>";
+          }
+        }
+      }
+
+      html = html + "<div class='card'><h2>" + labels.because + "</h2>";
+      var reasons = rec.reasons || [];
+      var i = 0;
+      while (i < reasons.length) {
+        html = html + "<div class='reason-box'>" + reasons[i] + "</div>";
+        i = i + 1;
+      }
+      html = html + "</div>";
+
+      if (rec.warnings && rec.warnings.length) {
+        html = html + "<div class='card'><h2>What to check before proceeding</h2>";
+        i = 0;
+        while (i < rec.warnings.length) {
+          html = html + "<div class='warning-box'>" + rec.warnings[i] + "</div>";
+          i = i + 1;
+        }
+        html = html + "</div>";
+      }
+
+      if (rec.sub_recommendations && rec.sub_recommendations.length) {
+        html = html + "<div class='card'><h2>Recommended next steps</h2><ul>";
+        i = 0;
+        while (i < rec.sub_recommendations.length) {
+          html = html + "<li>" + rec.sub_recommendations[i] + "</li>";
+          i = i + 1;
+        }
+        html = html + "</ul></div>";
+      }
+
+      if (!isNotAi && rec.alternatives && rec.alternatives.length) {
+        html = html + "<div class='card'><h2>" + labels.alternatives + "</h2><ul>";
+        i = 0;
+        while (i < rec.alternatives.length) {
+          html = html + "<li>" + rec.alternatives[i].label + "</li>";
+          i = i + 1;
+        }
+        html = html + "</ul></div>";
+      }
+
+      html = html + "<div class='card'><h2>" + labels.eu_tier + "</h2>";
+      html = html + "<p><span class='" + badgeClass(eu.tier_id || project.eu_tier) + "'>" + (eu.label || project.eu_tier) + "</span></p>";
+      var euMessage = "";
+      if (eu.message !== undefined) {
+        euMessage = String(eu.message).replace(/\bPRISM\b/g, "PMAID");
+      }
+      html = html + "<p>" + euMessage + "</p>";
+      var packs = rec.mandatory_work_packages || eu.mandatory_work_packages || [];
+      if (packs.length) {
+        html = html + "<h3>" + labels.mandatory_packages + "</h3><ul>";
+        i = 0;
+        while (i < packs.length) {
+          html = html + "<li>" + packs[i] + "</li>";
+          i = i + 1;
+        }
+        html = html + "</ul>";
+      }
+      html = html + "</div>";
+
+      if (isNotAi) {
+        if (eu.hard_stop !== true) {
+          html = html + nonAIPlanHtml(project);
+        }
+      }
+
+      html = html + versionHistoryHtml(project);
+
+      html = html + "<div class='list-actions'>";
+      if (eu.hard_stop) {
+        html = html + "<a class='btn btn-secondary' href='/pages/index.html'>Return home</a>";
+      } else {
+        if (isNotAi) {
+          html = html + "<button type='button' class='btn btn-danger' id='btn-anyway'>" + labels.proceed_anyway + "</button>";
+          html = html + "<a class='btn btn-success' href='/pages/planner.html'>Open alternative plan</a>";
+          html = html + "<a class='btn' href='/pages/discovery.html?mode=edit'>" + labels.modify + "</a>";
+        } else {
+          html = html + "<a class='btn btn-success' id='btn-accept' href='/pages/planner.html'>" + labels.accept + "</a>";
+          html = html + "<a class='btn' href='/pages/discovery.html?mode=edit'>" + labels.modify + "</a>";
+          html = html + "<button type='button' class='btn btn-ghost' id='btn-override'>" + labels.override + "</button>";
+        }
+      }
+      html = html + "</div>";
+
+      root.innerHTML = html;
+
+      var anyway = document.getElementById("btn-anyway");
+      if (anyway) {
+        anyway.addEventListener("click", function () {
+          rec.override = true;
+          rec.ai_type = "supervised_classification";
+          rec.ai_label = RuleEngine.patternLabel(rec.ai_type, config);
+          rec.confidence = 40;
+          rec.reasons = rec.reasons || [];
+          rec.reasons.push("You chose to use AI even though PMAID recommended standard software.");
+          rec.suggested_phases = [
+            "problem_framing", "data_discovery", "solution_architecture",
+            "data_engineering", "model_development", "validation_testing",
+            "deployment", "hypercare"
+          ];
+          project.recommendations = rec;
+          ProcessBuilder.buildFromRecommendation(project, config);
+          StateManager.set(project);
+          openPlannerAfterSave();
+        });
+      }
+
+      var ov = document.getElementById("btn-override");
+      if (ov) {
+        ov.addEventListener("click", function () {
+          var next = window.prompt("Enter AI type id (e.g. generative_llm, document_extraction):", rec.ai_type);
+          if (!next) {
+            return;
+          }
+          rec.ai_type = next;
+          rec.ai_label = RuleEngine.patternLabel(next, config);
+          rec.override = true;
+          rec.reasons.push("You manually changed the recommended approach to " + next + ".");
+          project.recommendations = rec;
+          ProcessBuilder.buildFromRecommendation(project, config);
+          StateManager.set(project);
+          openPlannerAfterSave();
+        });
+      }
+    }
+
+    PrismStorage.applyTheme();
+    Promise.all([
+      ConfigManager.load(),
+      StateManager.ready()
+    ]).then(function (parts) {
+      var config = parts[0];
+      var project = StateManager.get();
+      if (!project || !project.recommendations) {
+        document.getElementById("verdict-root").innerHTML = "<p>No discovery result. <a href='/pages/discovery.html'>Start discovery</a>.</p>";
+        return;
+      }
+      renderVerdict(project, config);
+      enableNoMatchAssist(project, config);
+    });
+  </script>
+  <script src="/static/js/core/footer.js?v=20260809-2"></script>
+</body>
+</html>

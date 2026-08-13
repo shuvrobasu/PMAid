@@ -1,0 +1,53 @@
+roles:
+  - role_id: r_tpm
+    name: Technical Programme Manager
+    description: Owns delivery plan, gates, and stakeholder alignment
+    raci_default: A
+  - role_id: r_sponsor
+    name: Business Sponsor
+    description: Owns problem value and accept or reject criteria
+    raci_default: A
+  - role_id: r_domain_sme
+    name: Domain Subject Matter Expert
+    description: Interprets labels, edge cases, and business rules
+    raci_default: C
+  - role_id: r_data_engineer
+    name: Data Engineer
+    description: Builds pipelines, quality checks, and data versions
+    raci_default: R
+  - role_id: r_data_scientist
+    name: Data Scientist
+    description: Designs experiments and evaluates model quality
+    raci_default: R
+  - role_id: r_ml_engineer
+    name: ML Engineer
+    description: Productionises training and inference systems
+    raci_default: R
+  - role_id: r_architect
+    name: Solution Architect
+    description: Owns system design and integration boundaries
+    raci_default: A
+  - role_id: r_privacy_officer
+    name: Privacy Officer
+    description: Reviews personal data use and retention
+    raci_default: C
+  - role_id: r_ethics_lead
+    name: Ethics Lead
+    description: Reviews harm scenarios and oversight design
+    raci_default: C
+  - role_id: r_qa
+    name: Quality Assurance
+    description: Tests functional and non-functional behaviour
+    raci_default: R
+  - role_id: r_compliance
+    name: Compliance Officer
+    description: Confirms regulatory obligations and evidence
+    raci_default: C
+  - role_id: r_sre
+    name: Site Reliability Engineer
+    description: Owns reliability, rollback, and on-call for model services
+    raci_default: R
+  - role_id: r_product_owner
+    name: Product Owner
+    description: Prioritises backlog and accepts incremental outcomes
+    raci_default: A
