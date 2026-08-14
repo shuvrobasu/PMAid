@@ -20,6 +20,9 @@ Every tool in the market either manages a project you have already planned, or p
 
 PMAID fills that gap.
 
+<img width="1036" height="864" alt="image" src="https://github.com/user-attachments/assets/26044428-ebd7-4990-8b76-72e71c9ae5c9" />
+
+
 ---
 
 ## What PMAID is — and is not
