@@ -236,8 +236,12 @@
         });
       });
     }).catch(function (err) {
+      var nextStep = "PMAID could not load the deployed configuration cache. Ensure config/cache/*.json files were uploaded.";
+      if (window.PMAID_MODE === "server") {
+        nextStep = "From the project root run: <code>python server.py</code>";
+      }
       document.querySelector("main").innerHTML =
-        "<div class='danger-box'><p>Could not load PMAID data.</p><p>From the project root run: <code>python server.py</code></p><p>" + err + "</p></div>";
+        "<div class='danger-box'><p>Could not load PMAID data.</p><p>" + nextStep + "</p><p>" + err + "</p></div>";
     });
   </script>
   <script src="/static/js/core/footer.js?v=20260809-2"></script>

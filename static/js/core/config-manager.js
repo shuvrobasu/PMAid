@@ -185,7 +185,7 @@ var ConfigManager = {
   },
 
   loadMaster: function () {
-    var root = "/config/cache/";
+    var root = new URL("../config/cache/", window.location.href).href;
     var promises = ConfigManager.fileNames.map(function (name) {
       return ConfigManager.fetchJson(root + name + ".json").then(function (data) {
         return { name: name, data: data };
