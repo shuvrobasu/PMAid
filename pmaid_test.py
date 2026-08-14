@@ -708,6 +708,20 @@ def test_exit_control():
     check("PMAID has a confirmed server exit control that stops local services", expected, actual)
 
 
+def test_browser_cache_paths():
+    manager_source = fetch("/static/js/core/config-manager.js")[1]
+    home_source = fetch("/pages/index.html")[1]
+    actual = {
+        "relative_cache_root": 'new URL("../config/cache/", window.location.href)' in manager_source,
+        "browser_error_explained": "deployed configuration cache" in home_source,
+    }
+    expected = {
+        "relative_cache_root": True,
+        "browser_error_explained": True,
+    }
+    check("browser-only mode resolves its deployed configuration cache", expected, actual)
+
+
 def test_rule_editor():
     parsed, source = page("/pages/rules.html")
     script_source = fetch("/static/js/modules/rules-editor.js?v=20260810-1")[1]
@@ -1778,6 +1792,7 @@ TESTS = [
     ("export.html generates risk register, RACI, and question-back list", test_other_exports),
     ("config.html links to a guided decision rule editor", test_config_page),
     ("PMAID provides a confirmed exit control for server mode", test_exit_control),
+    ("browser-only mode resolves its deployed configuration cache", test_browser_cache_paths),
     ("rules.html edits decision rules without raw JSON", test_rule_editor),
     ("tasks, roles, and risks have guided CRUD backed by an organisation bundle", test_config_library_and_org_bundle),
     ("planner tracks assumptions and phase stakeholders separately", test_planning_registers),
