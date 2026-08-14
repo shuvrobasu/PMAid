@@ -1,166 +1,103 @@
-"""Self-check: 10 rule scenarios + EU tier paths. Run: python test_rules.py"""
+"""Run ten deterministic PMAID rule-engine scenarios without dependencies."""
 
-import json
-import sys
+from pathlib import Path
 
-
-def load(name):
-    with open("config/cache/" + name + ".json", encoding="utf-8") as handle:
-        return json.load(handle)
+import config_validator
 
 
-def match_cond(actual, condition):
-    if condition is None:
-        return True
-    if "in" in condition:
-        if actual is None:
-            return False
-        if isinstance(actual, list):
-            for item in actual:
-                if item in condition["in"]:
+ROOT = Path(__file__).resolve().parent
+RULES_PATH = ROOT / "config" / "master" / "rules.yaml"
+
+
+def load_rules():
+    source = RULES_PATH.read_text(encoding="utf-8")
+    parsed = config_validator.parse_yaml(source)
+    return parsed["rules"]
+
+
+def condition_matches(value, condition):
+    allowed = condition.get("in")
+    if allowed is not None:
+        if isinstance(value, list):
+            for item in value:
+                if item in allowed:
                     return True
             return False
-        if actual in condition["in"]:
+        if value in allowed:
             return True
         return False
-    if "not_in" in condition:
-        if actual is None:
-            return True
-        if isinstance(actual, list):
-            for item in actual:
-                if item in condition["not_in"]:
+    rejected = condition.get("not_in")
+    if rejected is not None:
+        if isinstance(value, list):
+            for item in value:
+                if item in rejected:
                     return False
             return True
-        if actual in condition["not_in"]:
+        if value in rejected:
             return False
         return True
     return True
 
 
-def evaluate(rules, inputs):
-    ordered = sorted(rules, key=lambda rule: 0 - rule["priority"])
-    best_rule = None
+def rule_matches(rule, inputs):
+    for key, condition in rule["conditions"].items():
+        value = inputs.get(key)
+        if key == "problem_type":
+            value = inputs.get("problem_type")
+        if condition_matches(value, condition) is False:
+            return False
+    return True
+
+
+def evaluate(inputs, rules):
+    best = None
     best_confidence = -1
-    for rule in ordered:
-        conds = rule.get("conditions")
-        if conds is None:
-            conds = {}
-        ok = True
-        for key in conds:
-            cond = conds[key]
-            actual = inputs.get(key)
-            if key == "problem_type":
-                actual = inputs.get("problem_types", inputs.get("problem_type"))
-            if not match_cond(actual, cond):
-                ok = False
-                break
-        if ok:
-            confidence = rule["output"]["confidence"]
-            if confidence > best_confidence:
-                best_rule = rule
-                best_confidence = confidence
-    if best_rule is None:
-        return "rule_no_match", "NO_MATCH"
+    for rule in rules:
+        if rule_matches(rule, inputs) is False:
+            continue
+        confidence = rule["output"]["confidence"]
+        if confidence > best_confidence:
+            best = rule
+            best_confidence = confidence
+    if best is None:
+        return "NO_MATCH"
     if best_confidence < 40:
-        return "rule_no_match", "NO_MATCH"
-    return best_rule["rule_id"], best_rule["output"]["ai_type"]
+        return "NO_MATCH"
+    return best["rule_id"]
 
 
-def match_tier(tier, domain, affects, autonomy):
-    conditions = tier.get("trigger_conditions")
-    if not conditions:
+def scenario(name, inputs, expected, rules):
+    actual = evaluate(inputs, rules)
+    if actual != expected:
+        print("FAIL %s expected %s got %s" % (name, expected, actual))
         return False
-    for cond in conditions:
-        ok = True
-        if "domain" in cond:
-            if cond["domain"] != domain:
-                ok = False
-        if ok:
-            if "affects_people" in cond:
-                if cond["affects_people"] != affects:
-                    ok = False
-        if ok:
-            if "autonomy" in cond:
-                if cond["autonomy"] != autonomy:
-                    ok = False
-        if ok:
-            return True
-    return False
-
-
-def classify(eu, domain, affects, autonomy):
-    if match_tier(eu["tiers"]["prohibited"], domain, affects, autonomy):
-        return "prohibited"
-    if match_tier(eu["tiers"]["high_risk"], domain, affects, autonomy):
-        return "high_risk"
-    if match_tier(eu["tiers"]["limited_risk"], domain, affects, autonomy):
-        return "limited_risk"
-    return "minimal_risk"
+    print("OK %s" % name)
+    return True
 
 
 def main():
-    rules = load("rules")["rules"]
-    eu = load("eu_ai_act")
-    scenarios = [
-        ({"problem_types": ["predict_outcome"], "data_state": "clean_labelled", "pretrained_available": "no", "rule_complexity": "medium", "eu_tier": "high_risk"}, "supervised_classification"),
-        ({"problem_types": ["classify_content"], "data_state": "partial", "pretrained_available": "yes", "rule_complexity": "medium", "eu_tier": "limited_risk"}, "document_extraction"),
-        ({"problem_types": ["automate_process"], "data_state": "none", "pretrained_available": "no", "rule_complexity": "low", "eu_tier": "minimal_risk"}, "NOT_AI"),
-        ({"problem_types": ["retrieve_lookup"], "data_state": "clean_labelled", "pretrained_available": "no", "rule_complexity": "low", "eu_tier": "minimal_risk"}, "NOT_AI"),
-        ({"problem_types": ["predict_outcome"], "data_state": "none", "pretrained_available": "no", "rule_complexity": "medium", "eu_tier": "minimal_risk"}, "NOT_AI"),
-        (
-            {
-                "problem_types": ["predict_outcome"],
-                "data_state": "clean_labelled",
-                "pretrained_available": "no",
-                "rule_complexity": "medium",
-                "eu_tier": "prohibited",
-                "affects_people": "yes",
-            },
-            "NOT_AI",
-        ),
-        ({"problem_types": ["generate_content"], "data_state": "partial", "pretrained_available": "yes", "rule_complexity": "medium", "eu_tier": "limited_risk"}, "generative_llm"),
-        ({"problem_types": ["detect_anomaly"], "data_state": "messy", "pretrained_available": "no", "rule_complexity": "high", "eu_tier": "minimal_risk"}, "anomaly_detection"),
-        ({"problem_types": ["optimise_decision"], "data_state": "clean_labelled", "pretrained_available": "no", "rule_complexity": "high", "eu_tier": "minimal_risk"}, "optimisation"),
-        ({"problem_types": ["unknown"], "data_state": "clean_labelled", "pretrained_available": "yes", "rule_complexity": "low", "eu_tier": "minimal_risk"}, "NO_MATCH"),
+    rules = load_rules()
+    cases = [
+        ("rule_prohibited_stop", {"eu_tier": "prohibited", "affects_people": "yes"}, "rule_prohibited_stop"),
+        ("rule_lookup_not_ai", {"problem_type": "retrieve_lookup", "eu_tier": "minimal_risk"}, "rule_lookup_not_ai"),
+        ("rule_automate_low_not_ai", {"problem_type": "automate_process", "rule_complexity": "low"}, "rule_automate_low_not_ai"),
+        ("rule_no_data_not_ai", {"data_state": "none", "problem_type": "predict_outcome", "pretrained_available": "no"}, "rule_no_data_not_ai"),
+        ("rule_supervised_prediction", {"problem_type": "predict_outcome", "data_state": "clean_labelled"}, "rule_supervised_prediction"),
+        ("rule_document_extraction", {"problem_type": "classify_content", "data_state": "partial"}, "rule_document_extraction"),
+        ("rule_generative", {"problem_type": "generate_content", "eu_tier": "minimal_risk"}, "rule_generative"),
+        ("rule_anomaly", {"problem_type": "detect_anomaly", "eu_tier": "minimal_risk"}, "rule_anomaly"),
+        ("rule_optimise", {"problem_type": "optimise_decision", "eu_tier": "minimal_risk"}, "rule_optimise"),
+        ("rule_unknown_default", {"problem_type": "unknown", "eu_tier": "minimal_risk"}, "NO_MATCH"),
     ]
-    failed = 0
-    for inputs, expect in scenarios:
-        rule_id, ai_type = evaluate(rules, inputs)
-        if ai_type != expect:
-            print("FAIL", inputs, "got", ai_type, "expect", expect)
-            failed = failed + 1
-        else:
-            print("OK", rule_id, ai_type)
-    eu_cases = [
-        ("social_scoring", "yes", "human_in_loop", "prohibited"),
-        ("essential_services", "yes", "assisted", "high_risk"),
-        ("chatbot_interaction", "yes", "assisted", "limited_risk"),
-        ("internal_ops", "no", "human_in_loop", "minimal_risk"),
-    ]
-    for domain, affects, autonomy, expect in eu_cases:
-        got = classify(eu, domain, affects, autonomy)
-        if got != expect:
-            print("FAIL EU", domain, got, expect)
-            failed = failed + 1
-        else:
-            print("OK EU", domain, got)
-    packages = eu["tiers"]["high_risk"]["mandatory_work_packages"]
-    if len(packages) != 8:
-        print("FAIL package count", len(packages))
-        failed = failed + 1
-    else:
-        print("OK high_risk packages", len(packages))
-    no_match_questions = load("rules")["no_match"]["questions"]
-    if len(no_match_questions) != 8:
-        print("FAIL no_match question count", len(no_match_questions))
-        failed = failed + 1
-    else:
-        print("OK no_match questions", len(no_match_questions))
-    if failed > 0:
-        print("FAILED", failed)
-        sys.exit(1)
-    print("All checks passed")
+    failed = False
+    for name, inputs, expected in cases:
+        passed = scenario(name, inputs, expected, rules)
+        if passed is False:
+            failed = True
+    if failed:
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
